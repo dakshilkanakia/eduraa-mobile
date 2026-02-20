@@ -11,6 +11,7 @@ import type {
   PaperSubmissionRead,
   PaperOptions,
   PaginatedResponse,
+  Chapter,
 } from '../types'
 
 export const papersApi = {
@@ -19,15 +20,25 @@ export const papersApi = {
     return response.data
   },
 
+  /** Chapters are fetched separately per subject — GET /chapters?subject_id=... */
+  getChapters: async (subjectId: string): Promise<Chapter[]> => {
+    const response = await apiClient.get<Chapter[]>('/chapters', {
+      params: { subject_id: subjectId },
+    })
+    return response.data
+  },
+
   generate: async (data: PaperGenerateRequest): Promise<Paper> => {
     const response = await apiClient.post<Paper>('/papers/generate', data)
     return response.data
   },
 
+  // Backend uses skip/limit (not page/size)
   list: async (params?: {
-    page?: number
-    size?: number
+    skip?: number
+    limit?: number
     subject_id?: string
+    status?: string
   }): Promise<PaginatedResponse<PaperListItem>> => {
     const response = await apiClient.get<PaginatedResponse<PaperListItem>>('/papers', { params })
     return response.data
@@ -35,11 +46,6 @@ export const papersApi = {
 
   getById: async (paperId: string): Promise<Paper> => {
     const response = await apiClient.get<Paper>(`/papers/${paperId}`)
-    return response.data
-  },
-
-  getInteractive: async (paperId: string): Promise<Paper> => {
-    const response = await apiClient.get<Paper>(`/papers/${paperId}/interactive`)
     return response.data
   },
 
@@ -55,7 +61,7 @@ export const papersApi = {
 
   getInteractiveAssist: async (
     paperId: string,
-    data: { question_id: string; type: 'hint' | 'explanation' }
+    data: { question_id: string; mode: 'hint' | 'explain' | 'mistake'; student_answer?: string }
   ): Promise<{ content: string }> => {
     const response = await apiClient.post(`/papers/${paperId}/interactive/assist`, data)
     return response.data

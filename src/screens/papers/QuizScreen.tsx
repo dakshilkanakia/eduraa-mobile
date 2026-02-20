@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native'
 import { useRoute, useNavigation } from '@react-navigation/native'
-import type { RouteProp } from '@react-navigation/native-stack'
+import type { RouteProp } from '@react-navigation/native'
 import type { PapersStackParamList } from '../../navigation'
 import { colors } from '../../theme/colors'
 import { spacing, radius } from '../../theme/spacing'

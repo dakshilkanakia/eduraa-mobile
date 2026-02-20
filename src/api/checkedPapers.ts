@@ -1,16 +1,14 @@
 /**
  * Eduraa Mobile — Checked Papers API
+ * Backend returns a plain array (list[CheckedPaperListRead]), NOT a paginated object.
  */
 
 import apiClient from './client'
-import type { CheckedPaper, PaginatedResponse } from '../types'
+import type { CheckedPaper } from '../types'
 
 export const checkedPapersApi = {
-  list: async (params?: {
-    page?: number
-    size?: number
-  }): Promise<PaginatedResponse<CheckedPaper>> => {
-    const response = await apiClient.get<PaginatedResponse<CheckedPaper>>('/checked-papers', { params })
+  list: async (): Promise<CheckedPaper[]> => {
+    const response = await apiClient.get<CheckedPaper[]>('/checked-papers')
     return response.data
   },
 

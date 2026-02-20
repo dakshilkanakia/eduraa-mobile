@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, ActivityIndicator, Alert
@@ -10,7 +10,7 @@ import type { PapersStackParamList } from '../../navigation'
 import { papersApi } from '../../api/papers'
 import { colors } from '../../theme/colors'
 import { spacing, radius } from '../../theme/spacing'
-import type { Difficulty } from '../../types'
+import type { Difficulty, Chapter } from '../../types'
 
 type Nav = NativeStackNavigationProp<PapersStackParamList, 'GeneratePaper'>
 
@@ -25,11 +25,35 @@ export default function GeneratePaperScreen() {
   const [titleLine1, setTitleLine1] = useState('')
   const [mcqCount, setMcqCount] = useState('10')
   const [shortCount, setShortCount] = useState('5')
+  const [longCount, setLongCount] = useState('0')
+  const [trueFalseCount, setTrueFalseCount] = useState('0')
 
+  // chapters fetched separately per subject
+  const [chapters, setChapters] = useState<Chapter[]>([])
+  const [chaptersLoading, setChaptersLoading] = useState(false)
+
+  // Fetch paper generation options (subjects)
   const { data: options, isLoading: optionsLoading } = useQuery({
     queryKey: ['paper-options'],
     queryFn: papersApi.getOptions,
   })
+
+  // When subject changes, fetch chapters from separate endpoint
+  useEffect(() => {
+    if (!selectedSubject) {
+      setChapters([])
+      return
+    }
+    let cancelled = false
+    setChaptersLoading(true)
+    setSelectedChapters([])
+    papersApi
+      .getChapters(selectedSubject)
+      .then((data) => { if (!cancelled) setChapters(data) })
+      .catch(() => { if (!cancelled) setChapters([]) })
+      .finally(() => { if (!cancelled) setChaptersLoading(false) })
+    return () => { cancelled = true }
+  }, [selectedSubject])
 
   const generateMutation = useMutation({
     mutationFn: papersApi.generate,
@@ -37,26 +61,48 @@ export default function GeneratePaperScreen() {
       navigation.replace('PaperDetail', { paperId: paper.id })
     },
     onError: (err: any) => {
-      Alert.alert('Generation failed', err?.response?.data?.detail || 'Please try again.')
+      const detail = err?.response?.data?.detail
+      const msg = typeof detail === 'string'
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((d: any) => d.msg).join(', ')
+          : 'Please try again.'
+      Alert.alert('Generation failed', msg)
     },
   })
 
   const handleGenerate = () => {
-    if (!selectedSubject || selectedChapters.length === 0 || !titleLine1.trim()) {
-      Alert.alert('Missing fields', 'Please select a subject, at least one chapter, and enter a title.')
+    if (!selectedSubject) {
+      Alert.alert('Missing subject', 'Please select a subject.')
+      return
+    }
+    if (selectedChapters.length === 0) {
+      Alert.alert('Missing chapters', 'Please select at least one chapter.')
+      return
+    }
+    if (!titleLine1.trim()) {
+      Alert.alert('Missing title', 'Please enter a paper title.')
+      return
+    }
+    const mcq = Math.max(0, parseInt(mcqCount) || 0)
+    const short = Math.max(0, parseInt(shortCount) || 0)
+    const long = Math.max(0, parseInt(longCount) || 0)
+    const tf = Math.max(0, parseInt(trueFalseCount) || 0)
+    if (mcq + short + long + tf === 0) {
+      Alert.alert('No questions', 'Please add at least one question.')
       return
     }
     generateMutation.mutate({
       subject_id: selectedSubject,
       chapter_ids: selectedChapters,
       difficulty,
-      title_line_1: titleLine1,
-      mcq_count: parseInt(mcqCount) || 0,
-      short_answer_count: parseInt(shortCount) || 0,
-      long_answer_count: 0,
+      title_line_1: titleLine1.trim(),
+      mcq_count: mcq,
+      short_answer_count: short,
+      long_answer_count: long,
       fill_blank_count: 0,
       match_columns_count: 0,
-      true_false_count: 0,
+      true_false_count: tf,
     })
   }
 
@@ -76,43 +122,56 @@ export default function GeneratePaperScreen() {
   }
 
   const subjects = options?.subjects || []
-  const chapters = selectedSubject ? (options?.chapters?.[selectedSubject] || []) : []
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       {/* Subject */}
       <Text style={styles.label}>Subject *</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
-        {subjects.map((s) => (
-          <TouchableOpacity
-            key={s.id}
-            style={[styles.pill, selectedSubject === s.id && styles.pillActive]}
-            onPress={() => { setSelectedSubject(s.id); setSelectedChapters([]) }}
-          >
-            <Text style={[styles.pillText, selectedSubject === s.id && styles.pillTextActive]}>{s.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {subjects.length === 0 ? (
+        <Text style={styles.emptyHint}>
+          No subjects available. Go to Profile and add your subjects first.
+        </Text>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
+          {subjects.map((s) => (
+            <TouchableOpacity
+              key={s.id}
+              style={[styles.pill, selectedSubject === s.id && styles.pillActive]}
+              onPress={() => setSelectedSubject(s.id)}
+            >
+              <Text style={[styles.pillText, selectedSubject === s.id && styles.pillTextActive]}>
+                {s.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       {/* Chapters */}
-      {selectedSubject && (
+      {selectedSubject ? (
         <>
-          <Text style={styles.label}>Chapters * (select at least one)</Text>
-          <View style={styles.chapterGrid}>
-            {chapters.map((ch) => (
-              <TouchableOpacity
-                key={ch.id}
-                style={[styles.chapterPill, selectedChapters.includes(ch.id) && styles.chapterPillActive]}
-                onPress={() => toggleChapter(ch.id)}
-              >
-                <Text style={[styles.chapterText, selectedChapters.includes(ch.id) && styles.chapterTextActive]}>
-                  {ch.title}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <Text style={styles.label}>Chapters * (tap to select)</Text>
+          {chaptersLoading ? (
+            <ActivityIndicator color={colors.accent} style={{ marginVertical: 12 }} />
+          ) : chapters.length === 0 ? (
+            <Text style={styles.emptyHint}>No chapters found for this subject.</Text>
+          ) : (
+            <View style={styles.chapterGrid}>
+              {chapters.map((ch) => (
+                <TouchableOpacity
+                  key={ch.id}
+                  style={[styles.chapterPill, selectedChapters.includes(ch.id) && styles.chapterPillActive]}
+                  onPress={() => toggleChapter(ch.id)}
+                >
+                  <Text style={[styles.chapterText, selectedChapters.includes(ch.id) && styles.chapterTextActive]}>
+                    {ch.title}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </>
-      )}
+      ) : null}
 
       {/* Difficulty */}
       <Text style={styles.label}>Difficulty</Text>
@@ -142,7 +201,7 @@ export default function GeneratePaperScreen() {
 
       {/* Question counts */}
       <Text style={styles.label}>Question Counts</Text>
-      <View style={styles.countRow}>
+      <View style={styles.countGrid}>
         <View style={styles.countField}>
           <Text style={styles.countLabel}>MCQ</Text>
           <TextInput
@@ -161,6 +220,24 @@ export default function GeneratePaperScreen() {
             keyboardType="numeric"
           />
         </View>
+        <View style={styles.countField}>
+          <Text style={styles.countLabel}>Long Answer</Text>
+          <TextInput
+            style={styles.countInput}
+            value={longCount}
+            onChangeText={setLongCount}
+            keyboardType="numeric"
+          />
+        </View>
+        <View style={styles.countField}>
+          <Text style={styles.countLabel}>True / False</Text>
+          <TextInput
+            style={styles.countInput}
+            value={trueFalseCount}
+            onChangeText={setTrueFalseCount}
+            keyboardType="numeric"
+          />
+        </View>
       </View>
 
       {/* Generate Button */}
@@ -173,7 +250,7 @@ export default function GeneratePaperScreen() {
         {generateMutation.isPending ? (
           <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
             <ActivityIndicator color={colors.white} />
-            <Text style={styles.generateBtnText}>Generating...</Text>
+            <Text style={styles.generateBtnText}>Generating your paper...</Text>
           </View>
         ) : (
           <Text style={styles.generateBtnText}>Generate Paper</Text>
@@ -188,6 +265,7 @@ const styles = StyleSheet.create({
   content: { padding: spacing[5], paddingBottom: 40 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   loadingText: { color: colors.muted, fontSize: 14 },
+  emptyHint: { fontSize: 13, color: colors.muted, marginBottom: spacing[2], fontStyle: 'italic' },
   label: {
     fontSize: 11, fontWeight: '700', color: colors.muted,
     textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: spacing[2], marginTop: spacing[4],
@@ -223,8 +301,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border, backgroundColor: colors.card,
     paddingHorizontal: spacing[4], fontSize: 15, color: colors.ink,
   },
-  countRow: { flexDirection: 'row', gap: spacing[3] },
-  countField: { flex: 1 },
+  countGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[3] },
+  countField: { width: '47%' },
   countLabel: { fontSize: 11, color: colors.muted, marginBottom: 4, fontWeight: '600' },
   countInput: {
     height: 44, borderRadius: radius.md, borderWidth: 1,

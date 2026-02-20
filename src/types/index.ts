@@ -286,33 +286,56 @@ export interface StudentExamRead extends Exam {
 
 // ─── Checked Papers ───────────────────────────────────────────────────────────
 
+// Backend returns: "graded" | "pending_manual_review" for B2C submissions
 export type CheckedPaperStatus =
+  | 'graded'
+  | 'pending_manual_review'
   | 'uploaded'
   | 'processing'
   | 'completed'
   | 'needs_review'
+  | string // allow any future status values
+
+export interface GradingResultItem {
+  question_id: string
+  question_number?: number
+  question_text?: string
+  question_type?: string
+  response?: string
+  expected_answer?: string | null
+  score?: number | null
+  max_score?: number | null
+  feedback?: string | null
+  confidence?: number | null
+  recommendation?: string | null
+}
 
 export interface CheckedPaper {
   id: string
   student_id: string
   teacher_id: string
-  exam_id: string
-  subject_id?: string
+  exam_id: string | null
+  subject_id?: string | null
   scanned_pdf_url: string
-  annotated_pdf_url?: string
+  annotated_pdf_url?: string | null
   ocr_text: string
   identifier_text: string
   status: CheckedPaperStatus
-  grading_results?: Record<string, unknown>[]
-  total_score?: number
-  max_score?: number
-  grading_feedback?: string
+  total_score?: number | null
+  max_score?: number | null
+  grading_feedback?: string | null
+  grading_results?: GradingResultItem[] | null
   needs_review: boolean
-  grading_confidence?: number
+  grading_confidence?: number | null
   is_teacher_override: boolean
-  teacher_reviewed_at?: string
+  teacher_reviewed_at?: string | null
   manual_review_requested: boolean
+  // enriched fields from backend list/detail endpoints
+  student_name?: string | null
+  exam_name?: string | null
+  subject_name?: string | null
   created_at: string
+  updated_at: string
 }
 
 // ─── Subjects & Chapters ──────────────────────────────────────────────────────
@@ -340,10 +363,34 @@ export interface Topic {
   subject_id: string
 }
 
+// PaperGenerateOptions matches backend PaperGenerateOptions schema
+export interface PaperSubjectOption {
+  id: string
+  name: string
+}
+
 export interface PaperOptions {
-  subjects: Subject[]
-  chapters: Record<string, Chapter[]>
-  topics: Record<string, Topic[]>
+  courses: string[]
+  standards: string[]
+  divisions: string[]
+  subjects: PaperSubjectOption[]
+  exam_types: string[]
+}
+
+// AI Chat
+export interface ChatRequest {
+  message: string
+  conversation_id?: string
+  question_id?: string
+  paper_id?: string
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>
+}
+
+export interface ChatResponse {
+  response: string
+  timestamp: string
+  conversation_id: string
+  message_id: string
 }
 
 // ─── Analytics ────────────────────────────────────────────────────────────────
@@ -360,12 +407,12 @@ export interface StudentDashboardLab {
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
 
+// Backend papers list uses skip/limit (not page/size)
 export interface PaginatedResponse<T> {
   items: T[]
   total: number
-  page: number
-  size: number
-  pages: number
+  skip: number
+  limit: number
 }
 
 // ─── API Errors ───────────────────────────────────────────────────────────────

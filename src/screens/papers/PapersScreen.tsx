@@ -16,7 +16,7 @@ export default function PapersScreen() {
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['papers'],
-    queryFn: () => papersApi.list({ page: 1, size: 20 }),
+    queryFn: () => papersApi.list({ skip: 0, limit: 50 }),
   })
 
   const renderItem = ({ item }: { item: PaperListItem }) => (

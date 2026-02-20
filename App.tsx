@@ -21,12 +21,16 @@ const queryClient = new QueryClient({
 })
 
 function AppContent() {
-  const { token, setAuth, logout, loadFromStorage, isLoading } = useAuthStore()
+  const { setAuth, logout, isLoading } = useAuthStore()
 
   // On mount: load token from SecureStore, then validate with /auth/me
   useEffect(() => {
     const init = async () => {
-      await loadFromStorage()
+      // loadFromStorage returns the token it found
+      const store = useAuthStore.getState()
+      await store.loadFromStorage()
+      // Read token directly from store after loading
+      const { token } = useAuthStore.getState()
       if (token) {
         try {
           const user = await authApi.me()

@@ -6,32 +6,56 @@ import {
 import { colors } from '../../theme/colors'
 import { spacing, radius } from '../../theme/spacing'
 import apiClient from '../../api/client'
+import type { ChatRequest, ChatResponse } from '../../types'
 
 interface Message { id: string; role: 'user' | 'assistant'; content: string }
 
 export default function AIStudioScreen() {
   const [messages, setMessages] = useState<Message[]>([
-    { id: '0', role: 'assistant', content: 'Hi! I\'m your Eduraa AI tutor. Ask me anything about your subjects, get explanations, or test your understanding.' }
+    { id: '0', role: 'assistant', content: "Hi! I'm your Eduraa AI tutor. Ask me anything about your subjects, get explanations, or test your understanding." }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [conversationId, setConversationId] = useState<string | undefined>()
   const listRef = useRef<FlatList>(null)
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return
+
     const userMsg: Message = { id: Date.now().toString(), role: 'user', content: input.trim() }
     setMessages((prev) => [...prev, userMsg])
     setInput('')
     setLoading(true)
 
     try {
-      const response = await apiClient.post('/ai/chat', {
-        messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
-      })
-      const aiContent = response.data?.message || response.data?.content || 'Sorry, I could not process that.'
-      setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: aiContent }])
-    } catch {
-      setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }])
+      // Build history from all messages except the initial greeting
+      const history = messages.slice(1).map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }))
+
+      const payload: ChatRequest = {
+        message: userMsg.content,
+        conversation_id: conversationId,
+        history: history.length > 0 ? history : undefined,
+      }
+
+      const res = await apiClient.post<ChatResponse>('/ai/chat', payload)
+      const aiContent = res.data?.response || 'Sorry, I could not process that.'
+
+      // Keep conversation threaded
+      if (res.data?.conversation_id) setConversationId(res.data.conversation_id)
+
+      setMessages((prev) => [
+        ...prev,
+        { id: (Date.now() + 1).toString(), role: 'assistant', content: aiContent },
+      ])
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.detail || 'Sorry, something went wrong. Please try again.'
+      setMessages((prev) => [
+        ...prev,
+        { id: (Date.now() + 1).toString(), role: 'assistant', content: errMsg },
+      ])
     } finally {
       setLoading(false)
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100)
@@ -76,6 +100,8 @@ export default function AIStudioScreen() {
           onChangeText={setInput}
           multiline
           maxLength={2000}
+          onSubmitEditing={sendMessage}
+          blurOnSubmit={false}
         />
         <TouchableOpacity
           style={[styles.sendBtn, (!input.trim() || loading) && styles.sendBtnDisabled]}

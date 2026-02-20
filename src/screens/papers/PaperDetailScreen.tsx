@@ -1,7 +1,8 @@
 import React from 'react'
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { useRoute, useNavigation } from '@react-navigation/native'
-import type { NativeStackNavigationProp, RouteProp } from '@react-navigation/native-stack'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { RouteProp } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import type { PapersStackParamList } from '../../navigation'
 import { papersApi } from '../../api/papers'
@@ -20,6 +21,16 @@ export default function PaperDetailScreen() {
     queryFn: () => papersApi.getById(params.paperId),
   })
 
+  // Check if this paper already has a submission — GET /papers/{id}/submission
+  // Returns 404 if not submitted yet, so we suppress errors
+  const { data: existingSubmission } = useQuery({
+    queryKey: ['paper-submission', params.paperId],
+    queryFn: () => papersApi.getSubmission(params.paperId),
+    enabled: !!paper,
+    retry: false,           // don't retry on 404
+    throwOnError: false,    // suppress 404 errors silently
+  })
+
   if (isLoading) {
     return <View style={styles.center}><ActivityIndicator color={colors.accent} /></View>
   }
@@ -27,6 +38,8 @@ export default function PaperDetailScreen() {
   if (!paper) {
     return <View style={styles.center}><Text style={styles.errorText}>Paper not found.</Text></View>
   }
+
+  const alreadySubmitted = !!existingSubmission
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
@@ -41,15 +54,43 @@ export default function PaperDetailScreen() {
         </View>
       </View>
 
+      {/* Already submitted notice */}
+      {alreadySubmitted && existingSubmission && (
+        <View style={styles.submittedBanner}>
+          <Text style={styles.submittedBannerText}>
+            ✓ You've already attempted this paper.
+            {existingSubmission.total_score != null && existingSubmission.max_score != null
+              ? `  Score: ${existingSubmission.total_score} / ${existingSubmission.max_score}`
+              : ''}
+          </Text>
+        </View>
+      )}
+
       {/* Action buttons */}
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={() => navigation.navigate('AttemptPaper', { paperId: paper.id })}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.primaryBtnText}>Attempt Paper</Text>
-        </TouchableOpacity>
+        {alreadySubmitted && existingSubmission ? (
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={() => {
+              // The submission ID is also the checked-paper ID for B2C students
+              navigation.getParent()?.navigate('Results', {
+                screen: 'ResultDetail',
+                params: { checkedPaperId: existingSubmission.id },
+              })
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.primaryBtnText}>View My Results</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={() => navigation.navigate('AttemptPaper', { paperId: paper.id })}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.primaryBtnText}>Attempt Paper</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={styles.secondaryBtn}
           onPress={() => navigation.navigate('Quiz', { paperId: paper.id })}
@@ -103,6 +144,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentLight, paddingHorizontal: 8, paddingVertical: 3,
     borderRadius: radius.full,
   },
+  submittedBanner: {
+    backgroundColor: '#d1fae5', borderRadius: radius.lg,
+    padding: spacing[3], borderWidth: 1, borderColor: '#34d399',
+    marginBottom: spacing[4],
+  },
+  submittedBannerText: { color: '#065f46', fontSize: 13, fontWeight: '600' },
   actions: { flexDirection: 'row', gap: spacing[3], marginBottom: spacing[5] },
   primaryBtn: {
     flex: 1, height: 48, backgroundColor: colors.accent,

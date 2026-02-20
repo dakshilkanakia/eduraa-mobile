@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  TextInput, Alert, AppState, AppStateStatus
+  TextInput, Alert
 } from 'react-native'
 import { useRoute, useNavigation } from '@react-navigation/native'
-import type { NativeStackNavigationProp, RouteProp } from '@react-navigation/native-stack'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { RouteProp } from '@react-navigation/native'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import type { PapersStackParamList } from '../../navigation'
 import { papersApi } from '../../api/papers'
@@ -37,11 +38,100 @@ export default function AttemptPaperScreen() {
         time_taken_seconds: Math.floor((Date.now() - startTime) / 1000),
         mode: 'standard',
       }),
-    onSuccess: () => {
-      navigation.navigate('PapersList')
-      Alert.alert('Submitted!', 'Your paper has been submitted successfully.')
+    onSuccess: (data) => {
+      // Detect if backend silently returned an existing submission
+      // (backend returns existing submission if already submitted for this paper)
+      const submissionAge = Date.now() - new Date(data.created_at).getTime()
+      const isExistingSubmission = submissionAge > 10_000 // older than 10s = already existed
+
+      if (isExistingSubmission) {
+        Alert.alert(
+          'Already Submitted',
+          `You have already submitted this paper.\n\nYour score: ${data.total_score ?? '?'} / ${data.max_score ?? '?'}\n\nEach paper can only be attempted once. Generate a new paper to try again.`,
+          [
+            {
+              text: 'View Results',
+              onPress: () => navigation.getParent()?.navigate('Results', {
+                screen: 'ResultDetail',
+                params: { checkedPaperId: data.id },
+              }),
+            },
+            { text: 'Back to Papers', onPress: () => navigation.navigate('PapersList') },
+          ]
+        )
+        return
+      }
+
+      const scoreMsg = data.total_score != null && data.max_score
+        ? `\n\nYour score: ${data.total_score} / ${data.max_score}`
+        : ''
+      Alert.alert(
+        'Paper Submitted!',
+        `Your answers have been recorded and graded.${scoreMsg}`,
+        [
+          {
+            text: 'View Results',
+            onPress: () => navigation.getParent()?.navigate('Results', {
+              screen: 'ResultDetail',
+              params: { checkedPaperId: data.id },
+            }),
+          },
+          { text: 'Back to Papers', onPress: () => navigation.navigate('PapersList') },
+        ]
+      )
     },
-    onError: () => Alert.alert('Error', 'Submission failed. Please try again.'),
+    onError: async (err: any) => {
+      const status = err?.response?.status
+      const detail = err?.response?.data?.detail
+      const errData = err?.response?.data
+
+      // On 500, check if submission was actually saved (backend may fail during grading but save answers)
+      if (status === 500) {
+        try {
+          const existing = await papersApi.getSubmission(params.paperId)
+          if (existing?.id) {
+            Alert.alert(
+              'Paper Submitted',
+              'Your answers were saved. Grading may take a moment — check the Results tab.',
+              [
+                {
+                  text: 'View Results',
+                  onPress: () => navigation.getParent()?.navigate('Results', {
+                    screen: 'ResultDetail',
+                    params: { checkedPaperId: existing.id },
+                  }),
+                },
+                {
+                  text: 'Results List',
+                  onPress: () => navigation.getParent()?.navigate('Results', { screen: 'ResultsList' }),
+                },
+              ]
+            )
+            return
+          }
+        } catch (_) {
+          // submission not found, show generic error
+        }
+      }
+
+      // Build a useful message
+      let msg: string
+      if (typeof detail === 'string') {
+        msg = detail
+      } else if (Array.isArray(detail)) {
+        msg = detail.map((d: any) => d.msg || JSON.stringify(d)).join('\n')
+      } else if (typeof errData === 'string') {
+        msg = errData
+      } else if (status === 500) {
+        msg = 'The server encountered an error. Please try again.'
+      } else if (status === 422) {
+        msg = 'Invalid submission data. Please try again.'
+      } else {
+        msg = 'Submission failed. Please try again.'
+      }
+
+      Alert.alert('Submission Failed', msg, [{ text: 'OK' }])
+    },
   })
 
   // Timer setup
@@ -101,7 +191,11 @@ export default function AttemptPaperScreen() {
               <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
             </View>
           )}
-          <TouchableOpacity style={styles.submitBtn} onPress={() => handleSubmit()} disabled={submitMutation.isPending}>
+          <TouchableOpacity
+            style={styles.submitBtn}
+            onPress={() => handleSubmit()}
+            disabled={submitMutation.isPending}
+          >
             <Text style={styles.submitBtnText}>Submit</Text>
           </TouchableOpacity>
         </View>
@@ -206,8 +300,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface2,
   },
   mcqOptionSelected: { borderColor: colors.accent, backgroundColor: colors.accentLight },
-  mcqLabel: { width: 24, height: 24, borderRadius: 12, textAlign: 'center', lineHeight: 24,
-    fontWeight: '700', backgroundColor: colors.border, color: colors.muted, fontSize: 12 },
+  mcqLabel: {
+    width: 24, height: 24, borderRadius: 12, textAlign: 'center', lineHeight: 24,
+    fontWeight: '700', backgroundColor: colors.border, color: colors.muted, fontSize: 12,
+  },
   mcqLabelSelected: { backgroundColor: colors.accent, color: colors.white },
   mcqText: { flex: 1, fontSize: 14, color: colors.ink },
   mcqTextSelected: { color: colors.accentStrong, fontWeight: '600' },
