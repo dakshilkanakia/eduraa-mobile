@@ -1,8 +1,4 @@
-/**
- * Login Screen
- */
-
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   View,
   Text,
@@ -14,31 +10,50 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Animated,
+  useWindowDimensions,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Ionicons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { AuthStackParamList } from '../../navigation'
 import { authApi } from '../../api/auth'
 import { useAuthStore } from '../../stores/authStore'
 import { colors } from '../../theme/colors'
-import { radius, spacing } from '../../theme/spacing'
+import { radius, spacing, shadows } from '../../theme/spacing'
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>
 
 export default function LoginScreen() {
   const navigation = useNavigation<Nav>()
   const { setAuth } = useAuthStore()
+  const insets = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [emailFocused, setEmailFocused] = useState(false)
+  const [passwordFocused, setPasswordFocused] = useState(false)
+
+  // Screen entrance animation
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(24)).current
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
+    ]).start()
+  }, [fadeAnim, slideAnim])
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Missing fields', 'Please enter your email and password.')
       return
     }
-
     setLoading(true)
     try {
       const authToken = await authApi.login({ username: email.trim(), password })
@@ -51,75 +66,125 @@ export default function LoginScreen() {
     }
   }
 
+  const isSmall = width < 380
+  const hPad = isSmall ? spacing[5] : spacing[6]
+
   return (
     <KeyboardAvoidingView
       style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Brand Header */}
-        <View style={styles.brand}>
-          <View style={styles.brandMark}>
-            <Text style={styles.brandMarkText}>E</Text>
-          </View>
-          <Text style={styles.brandName}>Eduraa</Text>
-          <Text style={styles.brandTagline}>AI-powered exam prep for Grade 11 & 12</Text>
-        </View>
-
-        {/* Card */}
-        <View style={styles.card}>
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Sign in to continue your prep</Text>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="you@example.com"
-              placeholderTextColor={colors.subtle}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingHorizontal: hPad, paddingTop: insets.top + 32 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+          {/* Brand */}
+          <View style={styles.brand}>
+            <View style={styles.brandMark}>
+              <Ionicons name="sparkles" size={26} color={colors.white} />
+            </View>
+            <Text style={styles.brandName}>Eduraa</Text>
+            <Text style={styles.brandTagline}>AI-powered exam prep</Text>
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Your password"
-              placeholderTextColor={colors.subtle}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+          {/* Card */}
+          <View style={[styles.card, shadows.sm]}>
+            <Text style={styles.title}>Welcome back</Text>
+            <Text style={styles.subtitle}>Sign in to continue your prep</Text>
+
+            {/* Email */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Email</Text>
+              <View style={[styles.inputWrap, emailFocused && styles.inputWrapFocused]}>
+                <Ionicons
+                  name="mail-outline"
+                  size={17}
+                  color={emailFocused ? colors.accent : colors.subtle}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="you@example.com"
+                  placeholderTextColor={colors.placeholder}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  onFocus={() => setEmailFocused(true)}
+                  onBlur={() => setEmailFocused(false)}
+                />
+              </View>
+            </View>
+
+            {/* Password */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Password</Text>
+              <View style={[styles.inputWrap, passwordFocused && styles.inputWrapFocused]}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={17}
+                  color={passwordFocused ? colors.accent : colors.subtle}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Your password"
+                  placeholderTextColor={colors.placeholder}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(v => !v)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={styles.eyeBtn}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={17}
+                    color={colors.subtle}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Sign In Button */}
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.82}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.white} size="small" />
+              ) : (
+                <Text style={styles.buttonText}>Sign In</Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity
+              style={styles.registerLink}
+              onPress={() => navigation.navigate('Register')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.registerLinkText}>
+                New to Eduraa?{'  '}
+                <Text style={styles.registerLinkAccent}>Create account</Text>
+              </Text>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.registerLink}
-            onPress={() => navigation.navigate('Register')}
-          >
-            <Text style={styles.registerLinkText}>
-              New to Eduraa?{' '}
-              <Text style={styles.registerLinkAccent}>Create account</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -133,25 +198,22 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: spacing[6],
+    paddingBottom: 40,
   },
+
   brand: {
     alignItems: 'center',
     marginBottom: spacing[8],
   },
   brandMark: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.xl,
+    width: 60,
+    height: 60,
+    borderRadius: 18,
     backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing[3],
-  },
-  brandMarkText: {
-    color: colors.white,
-    fontSize: 28,
-    fontWeight: '800',
+    ...shadows.md,
   },
   brandName: {
     fontSize: 28,
@@ -163,13 +225,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.muted,
     marginTop: 4,
-    textAlign: 'center',
+    letterSpacing: 0.1,
   },
+
   card: {
     backgroundColor: colors.card,
     borderRadius: radius['2xl'],
     padding: spacing[6],
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
   },
   title: {
@@ -177,52 +240,82 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.ink,
     marginBottom: 4,
+    letterSpacing: -0.2,
   },
   subtitle: {
     fontSize: 14,
     color: colors.muted,
-    marginBottom: spacing[5],
+    marginBottom: spacing[6],
   },
-  field: {
-    marginBottom: spacing[4],
-  },
+
+  field: { marginBottom: spacing[4] },
   label: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     color: colors.ink,
-    textTransform: 'uppercase',
-    letterSpacing: 0.08,
-    marginBottom: spacing[1],
+    marginBottom: spacing[1] + 2,
+    letterSpacing: 0.1,
   },
-  input: {
-    height: 48,
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 50,
     borderRadius: radius.lg,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.surface2,
-    paddingHorizontal: spacing[4],
+    paddingHorizontal: spacing[3],
+  },
+  inputWrapFocused: {
+    borderColor: colors.accent,
+    backgroundColor: colors.card,
+  },
+  inputIcon: { marginRight: spacing[2] },
+  input: {
+    flex: 1,
     fontSize: 15,
     color: colors.ink,
+    paddingVertical: 0,
   },
+  eyeBtn: {
+    paddingLeft: spacing[2],
+  },
+
   button: {
-    height: 50,
+    height: 52,
     backgroundColor: colors.accent,
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing[2],
   },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
+  buttonDisabled: { opacity: 0.65 },
   buttonText: {
     color: colors.white,
     fontSize: 15,
     fontWeight: '700',
+    letterSpacing: 0.2,
   },
-  registerLink: {
-    marginTop: spacing[4],
+
+  divider: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginVertical: spacing[4],
+    gap: spacing[3],
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    fontSize: 12,
+    color: colors.subtle,
+  },
+
+  registerLink: {
+    alignItems: 'center',
+    paddingVertical: spacing[1],
   },
   registerLinkText: {
     fontSize: 14,

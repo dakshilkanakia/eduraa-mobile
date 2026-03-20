@@ -8,9 +8,7 @@ import * as SecureStore from 'expo-secure-store'
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-// Use your Mac's local IP when testing on a physical device
-// Run `ipconfig getifaddr en0` in terminal to get your IP
-export const API_BASE_URL = 'http://192.168.1.241:8000'
+export const API_BASE_URL = 'https://eduraa-ai-dev-cin-api.gentleforest-0ad6efdc.centralindia.azurecontainerapps.io'
 
 export const TOKEN_KEY = 'eduraa_access_token'
 

@@ -10,6 +10,14 @@ export interface LoginRequest {
   password: string
 }
 
+export interface RegistrationChallenge {
+  email: string
+  message: string
+  requires_verification: boolean
+  delivery_channel: string
+  dev_otp?: string | null
+}
+
 export const authApi = {
   login: async (data: LoginRequest): Promise<AuthToken> => {
     const response = await apiClient.post<AuthToken>('/auth/login', {
@@ -19,8 +27,18 @@ export const authApi = {
     return response.data
   },
 
-  registerIndividual: async (data: B2CRegisterRequest & { confirm_password: string }): Promise<AuthToken> => {
-    const response = await apiClient.post<AuthToken>('/auth/register/individual', data)
+  registerIndividual: async (data: B2CRegisterRequest): Promise<RegistrationChallenge> => {
+    const response = await apiClient.post<RegistrationChallenge>('/auth/register/individual', data)
+    return response.data
+  },
+
+  verifyEmailOtp: async (email: string, otp: string): Promise<AuthToken> => {
+    const response = await apiClient.post<AuthToken>('/auth/verify-email-otp', { email, otp })
+    return response.data
+  },
+
+  resendEmailOtp: async (email: string): Promise<RegistrationChallenge> => {
+    const response = await apiClient.post<RegistrationChallenge>('/auth/resend-email-otp', { email })
     return response.data
   },
 

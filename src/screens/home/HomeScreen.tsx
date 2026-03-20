@@ -1,163 +1,516 @@
-import React from 'react'
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'
+import React, { useRef, useEffect } from 'react'
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  Animated,
+  useWindowDimensions,
+} from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Ionicons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../../stores/authStore'
 import { analyticsApi } from '../../api/analytics'
 import { colors } from '../../theme/colors'
-import { spacing, radius } from '../../theme/spacing'
+import { spacing, radius, shadows } from '../../theme/spacing'
+
+// ─── Animated progress bar ────────────────────────────────────────────────────
+
+function ProgressBar({ pct, color }: { pct: number; color: string }) {
+  const anim = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: pct / 100,
+      duration: 800,
+      delay: 200,
+      useNativeDriver: false,
+    }).start()
+  }, [anim, pct])
+
+  return (
+    <View style={bar.track}>
+      <Animated.View
+        style={[
+          bar.fill,
+          {
+            width: anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+            backgroundColor: color,
+          },
+        ]}
+      />
+    </View>
+  )
+}
+
+const bar = StyleSheet.create({
+  track: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.surface3,
+    overflow: 'hidden',
+  },
+  fill: { height: 6, borderRadius: 3 },
+})
+
+// ─── Quick action item type ───────────────────────────────────────────────────
+
+const QUICK_ACTIONS = [
+  {
+    label: 'Generate',
+    sub: 'New paper',
+    icon: 'add-circle-outline' as const,
+    screen: 'Papers',
+    params: { screen: 'GeneratePaper' },
+    color: colors.accent,
+    bg: colors.accentLight,
+  },
+  {
+    label: 'My Papers',
+    sub: 'View all',
+    icon: 'document-text-outline' as const,
+    screen: 'Papers',
+    params: { screen: 'PapersList' },
+    color: '#0284C7',
+    bg: '#F0F9FF',
+  },
+  {
+    label: 'Results',
+    sub: 'Grades & feedback',
+    icon: 'checkmark-circle-outline' as const,
+    screen: 'Results',
+    params: { screen: 'ResultsList' },
+    color: '#059669',
+    bg: '#ECFDF5',
+  },
+  {
+    label: 'AI Studio',
+    sub: 'Chat with AI',
+    icon: 'sparkles-outline' as const,
+    screen: 'AIStudio',
+    params: undefined,
+    color: '#7C3AED',
+    bg: '#F5F3FF',
+  },
+]
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const { user } = useAuthStore()
   const navigation = useNavigation<any>()
+  const insets = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
 
-  const { data: analytics, isLoading: analyticsLoading } = useQuery({
+  const { data: analytics, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['analytics', 'student-dashboard'],
     queryFn: analyticsApi.getStudentDashboard,
-    retry: 1,
+    retry: 0,
   })
 
-  const quickActions = [
-    { label: 'Generate Paper', icon: '✦', screen: 'Papers', params: { screen: 'GeneratePaper' } },
-    { label: 'My Papers', icon: '📄', screen: 'Papers', params: { screen: 'PapersList' } },
-    { label: 'Results', icon: '✓', screen: 'Results', params: { screen: 'ResultsList' } },
-    { label: 'AI Studio', icon: '✦', screen: 'AIStudio', params: undefined },
-  ]
+  // Entrance animation
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(16)).current
 
-  const firstName = user?.display_name?.split(' ')[0] || 'Student'
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+    ]).start()
+  }, [fadeAnim, slideAnim])
 
-  // Format score as percentage if available
-  const avgScore = analytics?.average_score != null
-    ? `${Math.round(analytics.average_score)}%`
-    : '—'
+  const firstName = analytics?.student?.first_name || user?.display_name?.split(' ')[0] || 'there'
+  const standard = analytics?.student?.standard ? `Grade ${analytics.student.standard}` : null
 
-  const stats = [
-    { label: 'Papers', value: analyticsLoading ? null : (analytics?.total_papers ?? '—').toString() },
-    { label: 'Avg Score', value: analyticsLoading ? null : avgScore },
-    { label: 'Submissions', value: analyticsLoading ? null : (analytics?.total_submissions ?? '—').toString() },
-  ]
+  const summary = analytics?.summary
+  const gradedSubs = (analytics?.submissions ?? []).filter(s => s.status === 'graded')
+  const avgPct = gradedSubs.length > 0
+    ? Math.round(gradedSubs.reduce((acc, s) => acc + (s.score / s.max_score) * 100, 0) / gradedSubs.length)
+    : null
+
+  const recentSubs = (analytics?.submissions ?? [])
+    .slice()
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 3)
+
+  const subjectAccuracy = Object.entries(analytics?.subject_question_types ?? {}).map(([subject, types]) => {
+    const totalScored = types.reduce((s, t) => s + t.scored, 0)
+    const totalMarks = types.reduce((s, t) => s + t.total, 0)
+    const accuracy = totalMarks > 0 ? Math.round((totalScored / totalMarks) * 100) : 0
+    return { subject, accuracy }
+  }).sort((a, b) => b.accuracy - a.accuracy)
+
+  const isSmall = width < 380
+  const hPad = isSmall ? spacing[4] : spacing[5]
+  const cardGap = isSmall ? spacing[2] : spacing[3]
+
+  const getScoreColor = (pct: number) =>
+    pct >= 75 ? colors.success : pct >= 50 ? colors.warning : colors.accent
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.brandMark}>
-          <Text style={styles.brandMarkText}>E</Text>
-        </View>
-        <View>
-          <Text style={styles.greeting}>Hello, {firstName} 👋</Text>
-          <Text style={styles.subtitle}>Ready to practise today?</Text>
-        </View>
-      </View>
+    <ScrollView
+      style={styles.root}
+      contentContainerStyle={[
+        styles.content,
+        { paddingHorizontal: hPad, paddingTop: insets.top + spacing[4] },
+      ]}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefetching}
+          onRefresh={refetch}
+          tintColor={colors.accent}
+          colors={[colors.accent]}
+        />
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-      {/* Quick Actions */}
-      <Text style={styles.sectionLabel}>Quick Actions</Text>
-      <View style={styles.actionGrid}>
-        {quickActions.map((action) => (
-          <TouchableOpacity
-            key={action.label}
-            style={styles.actionCard}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate(action.screen, action.params)}
-          >
-            <Text style={styles.actionIcon}>{action.icon}</Text>
-            <Text style={styles.actionLabel}>{action.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Progress stats */}
-      <Text style={styles.sectionLabel}>Your Progress</Text>
-      <View style={styles.statsRow}>
-        {stats.map((stat) => (
-          <View key={stat.label} style={styles.statCard}>
-            {stat.value === null ? (
-              <ActivityIndicator size="small" color={colors.accent} />
+        {/* ── Header ────────────────────────────────────────────────────── */}
+        <View style={styles.header}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.greeting}>Hello, {firstName} 👋</Text>
+            {standard ? (
+              <Text style={styles.greetingSub}>{standard}</Text>
             ) : (
-              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.greetingSub}>Ready to practise today?</Text>
             )}
-            <Text style={styles.statLabel}>{stat.label}</Text>
           </View>
-        ))}
-      </View>
-
-      {/* AI Coach summary */}
-      {analytics?.ai_coach_summary ? (
-        <>
-          <Text style={[styles.sectionLabel, { marginTop: spacing[4] }]}>AI Coach</Text>
-          <View style={styles.coachCard}>
-            <Text style={styles.coachText}>{analytics.ai_coach_summary}</Text>
+          <View style={styles.brandMark}>
+            <Ionicons name="sparkles" size={20} color={colors.white} />
           </View>
-        </>
-      ) : null}
+        </View>
 
-      {/* Improvement areas */}
-      {analytics?.improvement_areas && analytics.improvement_areas.length > 0 ? (
-        <>
-          <Text style={[styles.sectionLabel, { marginTop: spacing[4] }]}>Focus Areas</Text>
-          <View style={styles.focusCard}>
-            {analytics.improvement_areas.map((area, i) => (
-              <View key={i} style={styles.focusItem}>
-                <Text style={styles.focusDot}>•</Text>
-                <Text style={styles.focusText}>{area}</Text>
+        {/* ── Quick Actions ─────────────────────────────────────────────── */}
+        <Text style={styles.sectionLabel}>Quick Actions</Text>
+        <View style={[styles.actionGrid, { gap: cardGap }]}>
+          {QUICK_ACTIONS.map((a, i) => (
+            <TouchableOpacity
+              key={a.label}
+              style={[styles.actionCard, shadows.xs, { width: `${47.5}%` }]}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate(a.screen, a.params)}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: a.bg }]}>
+                <Ionicons name={a.icon} size={20} color={a.color} />
+              </View>
+              <Text style={styles.actionLabel}>{a.label}</Text>
+              <Text style={styles.actionSub}>{a.sub}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ── Stats ────────────────────────────────────────────────────── */}
+        <Text style={styles.sectionLabel}>Your Progress</Text>
+        {isLoading ? (
+          <View style={styles.statsLoading}>
+            <ActivityIndicator color={colors.accent} size="small" />
+          </View>
+        ) : isError ? (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle-outline" size={16} color={colors.danger} />
+            <Text style={styles.errorText}>Could not load stats</Text>
+            <TouchableOpacity onPress={() => refetch()} style={styles.retryBtn}>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={[styles.statsRow, { gap: cardGap }]}>
+            {[
+              {
+                label: 'Papers',
+                value: String(summary?.generated_papers ?? '—'),
+                icon: 'document-text-outline' as const,
+                color: '#0284C7',
+                bg: '#F0F9FF',
+              },
+              {
+                label: 'Submissions',
+                value: String(summary?.total_submissions ?? '—'),
+                icon: 'layers-outline' as const,
+                color: '#059669',
+                bg: '#ECFDF5',
+              },
+              {
+                label: 'Avg Score',
+                value: avgPct != null ? `${avgPct}%` : '—',
+                icon: 'trending-up-outline' as const,
+                color: avgPct != null ? getScoreColor(avgPct) : colors.muted,
+                bg: avgPct != null && avgPct >= 75
+                  ? '#ECFDF5'
+                  : avgPct != null && avgPct >= 50
+                    ? '#FFFBEB'
+                    : colors.surface2,
+              },
+            ].map(s => (
+              <View key={s.label} style={[styles.statCard, shadows.xs]}>
+                <View style={[styles.statIconWrap, { backgroundColor: s.bg }]}>
+                  <Ionicons name={s.icon} size={16} color={s.color} />
+                </View>
+                <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
+                <Text style={styles.statLabel}>{s.label}</Text>
               </View>
             ))}
           </View>
-        </>
-      ) : null}
+        )}
+
+        {/* ── Subject Performance ───────────────────────────────────────── */}
+        {!isLoading && subjectAccuracy.length > 0 && (
+          <>
+            <Text style={styles.sectionLabel}>Subject Performance</Text>
+            <View style={[styles.subjectCard, shadows.xs]}>
+              {subjectAccuracy.map((s, i) => {
+                const barColor = s.accuracy >= 75 ? colors.success : s.accuracy >= 50 ? colors.warning : colors.accent
+                return (
+                  <View
+                    key={s.subject}
+                    style={[
+                      styles.subjectRow,
+                      i < subjectAccuracy.length - 1 && styles.subjectRowBorder,
+                    ]}
+                  >
+                    <Text style={styles.subjectName} numberOfLines={1}>{s.subject}</Text>
+                    <View style={styles.subjectBarWrap}>
+                      <ProgressBar pct={s.accuracy} color={barColor} />
+                      <Text style={[styles.subjectPct, { color: barColor }]}>{s.accuracy}%</Text>
+                    </View>
+                  </View>
+                )
+              })}
+            </View>
+          </>
+        )}
+
+        {/* ── Recent Activity ───────────────────────────────────────────── */}
+        {!isLoading && recentSubs.length > 0 && (
+          <>
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionLabel}>Recent Activity</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Results', { screen: 'ResultsList' })}
+              >
+                <Text style={styles.seeAll}>See all</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ gap: cardGap }}>
+              {recentSubs.map((sub) => {
+                const pct = Math.round((sub.score / sub.max_score) * 100)
+                const scoreColor = getScoreColor(pct)
+                const dateStr = new Date(sub.date).toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                })
+                return (
+                  <TouchableOpacity
+                    key={sub.id}
+                    style={[styles.recentCard, shadows.xs]}
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      navigation.navigate('Results', {
+                        screen: 'ResultDetail',
+                        params: { checkedPaperId: sub.id },
+                      })
+                    }
+                  >
+                    <View style={styles.recentLeft}>
+                      <Text style={styles.recentPaper} numberOfLines={1}>{sub.paper}</Text>
+                      <Text style={styles.recentMeta}>{sub.subject}  ·  {dateStr}</Text>
+                    </View>
+                    <View style={[styles.recentScorePill, { backgroundColor: scoreColor + '18', borderColor: scoreColor + '40' }]}>
+                      <Text style={[styles.recentScoreText, { color: scoreColor }]}>
+                        {sub.score}/{sub.max_score}
+                      </Text>
+                      <Text style={[styles.recentPct, { color: scoreColor }]}>{pct}%</Text>
+                    </View>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+          </>
+        )}
+
+        <View style={{ height: 24 }} />
+      </Animated.View>
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface1 },
-  content: { padding: spacing[5], paddingBottom: 32 },
+  content: { paddingBottom: 32 },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[6],
-    marginTop: spacing[4],
-    gap: spacing[3],
+    justifyContent: 'space-between',
+    marginBottom: spacing[5],
+  },
+  greeting: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.ink,
+    letterSpacing: -0.3,
+  },
+  greetingSub: {
+    fontSize: 13,
+    color: colors.muted,
+    marginTop: 3,
   },
   brandMark: {
-    width: 44, height: 44, borderRadius: radius.xl,
-    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  brandMarkText: { color: colors.white, fontSize: 22, fontWeight: '800' },
-  greeting: { fontSize: 20, fontWeight: '700', color: colors.ink },
-  subtitle: { fontSize: 13, color: colors.muted, marginTop: 2 },
+
+  // Section label
   sectionLabel: {
-    fontSize: 11, fontWeight: '700', color: colors.muted,
-    textTransform: 'uppercase', letterSpacing: 0.12,
-    marginBottom: spacing[3], marginTop: spacing[2],
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.subtle,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: spacing[3],
+    marginTop: spacing[5],
   },
-  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[3], marginBottom: spacing[6] },
+  sectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing[5],
+    marginBottom: spacing[3],
+  },
+  seeAll: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.accent,
+  },
+
+  // Quick actions
+  actionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
   actionCard: {
-    width: '47%', backgroundColor: colors.card,
-    borderRadius: radius.xl, padding: spacing[4],
-    borderWidth: 1, borderColor: colors.border, alignItems: 'flex-start',
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    padding: spacing[4],
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    alignItems: 'flex-start',
+    gap: 4,
   },
-  actionIcon: { fontSize: 22, marginBottom: spacing[2] },
-  actionLabel: { fontSize: 14, fontWeight: '700', color: colors.ink },
-  statsRow: { flexDirection: 'row', gap: spacing[3] },
+  actionIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  actionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  actionSub: {
+    fontSize: 11,
+    color: colors.muted,
+  },
+
+  // Stats
+  statsLoading: { height: 80, alignItems: 'center', justifyContent: 'center' },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dangerBg,
+    borderRadius: radius.lg,
+    padding: spacing[3],
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.dangerBorder,
+    gap: spacing[2],
+  },
+  errorText: { flex: 1, fontSize: 13, color: colors.danger },
+  retryBtn: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    backgroundColor: colors.accent,
+    borderRadius: radius.full,
+  },
+  retryText: { fontSize: 12, fontWeight: '700', color: colors.white },
+  statsRow: { flexDirection: 'row' },
   statCard: {
-    flex: 1, backgroundColor: colors.card, borderRadius: radius.xl,
-    padding: spacing[4], borderWidth: 1, borderColor: colors.border,
-    alignItems: 'center', minHeight: 72, justifyContent: 'center',
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    padding: spacing[3],
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    alignItems: 'center',
+    gap: 4,
   },
-  statValue: { fontSize: 22, fontWeight: '800', color: colors.accent },
-  statLabel: { fontSize: 11, color: colors.muted, marginTop: 4, textAlign: 'center' },
-  coachCard: {
-    backgroundColor: colors.card, borderRadius: radius.xl,
-    padding: spacing[4], borderWidth: 1, borderColor: colors.border,
-    borderLeftWidth: 3, borderLeftColor: colors.accent,
+  statIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  coachText: { fontSize: 14, color: colors.ink, lineHeight: 22 },
-  focusCard: {
-    backgroundColor: colors.card, borderRadius: radius.xl,
-    padding: spacing[4], borderWidth: 1, borderColor: colors.border, gap: 8,
+  statValue: { fontSize: 20, fontWeight: '800' },
+  statLabel: { fontSize: 10, color: colors.muted, textAlign: 'center' },
+
+  // Subject
+  subjectCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    overflow: 'hidden',
   },
-  focusItem: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  focusDot: { color: colors.accent, fontWeight: '700', fontSize: 16, marginTop: -2 },
-  focusText: { fontSize: 14, color: colors.ink, flex: 1 },
+  subjectRow: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  subjectRowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  subjectName: { fontSize: 13, fontWeight: '600', color: colors.ink, width: 90 },
+  subjectBarWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
+  subjectPct: { fontSize: 12, fontWeight: '700', width: 34, textAlign: 'right' },
+
+  // Recent
+  recentCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  recentLeft: { flex: 1, gap: 3, marginRight: spacing[3] },
+  recentPaper: { fontSize: 13, fontWeight: '700', color: colors.ink },
+  recentMeta: { fontSize: 11, color: colors.subtle },
+  recentScorePill: {
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    minWidth: 60,
+  },
+  recentScoreText: { fontSize: 13, fontWeight: '800' },
+  recentPct: { fontSize: 10, fontWeight: '700' },
 })

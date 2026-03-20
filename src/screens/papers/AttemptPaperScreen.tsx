@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: spacing[4], backgroundColor: colors.navBg,
+    padding: spacing[4], backgroundColor: colors.ink,
     paddingTop: spacing[8],
   },
   headerTitle: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.white, marginRight: spacing[3] },

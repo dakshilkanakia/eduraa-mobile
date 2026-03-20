@@ -6,17 +6,14 @@ import apiClient from './client'
 import type { B2CProfileRead } from '../types'
 
 export interface B2CProfileUpdateRequest {
+  password: string // required for profile updates
+  education_level: import('../types').EducationLevel
   first_name?: string
   last_name?: string
   school_name?: string
-  board?: string
-  standard?: string
-  division?: string
+  school_board?: string
+  school_standard?: string
   subjects?: string[]
-  science_standard?: string
-  science_exam?: string[]
-  state_cet_states?: string[]
-  current_password: string // required for profile updates
 }
 
 export const b2cApi = {

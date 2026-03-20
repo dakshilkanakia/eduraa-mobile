@@ -3,19 +3,24 @@
  * Bottom tabs + stacks for B2C student
  */
 
-import React from 'react'
+import React, { useRef, useEffect } from 'react'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { Ionicons } from '@expo/vector-icons'
-import { ActivityIndicator, View } from 'react-native'
+import {
+  ActivityIndicator, View, Platform, Animated, StyleSheet,
+} from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAuthStore } from '../stores/authStore'
 import { colors } from '../theme/colors'
+import { shadows } from '../theme/spacing'
 
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen'
 import RegisterScreen from '../screens/auth/RegisterScreen'
+import VerifyEmailScreen from '../screens/auth/VerifyEmailScreen'
 
 // Main Screens
 import HomeScreen from '../screens/home/HomeScreen'
@@ -35,6 +40,7 @@ import EditProfileScreen from '../screens/profile/EditProfileScreen'
 export type AuthStackParamList = {
   Login: undefined
   Register: undefined
+  VerifyEmail: { email: string; devOtp?: string }
 }
 
 export type PapersStackParamList = {
@@ -71,15 +77,32 @@ const ResultsStack = createNativeStackNavigator<ResultsStackParamList>()
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>()
 const Tab = createBottomTabNavigator<TabParamList>()
 
+// Shared stack screen options
+const stackScreenOptions = {
+  headerStyle: {
+    backgroundColor: colors.card,
+  },
+  headerTintColor: colors.ink,
+  headerTitleStyle: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: colors.ink,
+  },
+  headerShadowVisible: false,
+  headerBackTitleVisible: false,
+  // Smooth native transitions
+  animation: 'slide_from_right' as const,
+  contentStyle: { backgroundColor: colors.surface1 },
+}
+
 // ─── Auth Navigator ───────────────────────────────────────────────────────────
 
 function AuthNavigator() {
   return (
-    <AuthStack.Navigator
-      screenOptions={{ headerShown: false }}
-    >
+    <AuthStack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="Register" component={RegisterScreen} />
+      <AuthStack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
     </AuthStack.Navigator>
   )
 }
@@ -88,14 +111,7 @@ function AuthNavigator() {
 
 function PapersNavigator() {
   return (
-    <PapersStack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.surface1 },
-        headerTintColor: colors.ink,
-        headerTitleStyle: { fontFamily: 'Manrope', fontWeight: '700' },
-        headerShadowVisible: false,
-      }}
-    >
+    <PapersStack.Navigator screenOptions={stackScreenOptions}>
       <PapersStack.Screen name="PapersList" component={PapersScreen} options={{ title: 'My Papers' }} />
       <PapersStack.Screen name="GeneratePaper" component={GeneratePaperScreen} options={{ title: 'Generate Paper' }} />
       <PapersStack.Screen name="PaperDetail" component={PaperDetailScreen} options={{ title: 'Paper Details' }} />
@@ -109,14 +125,7 @@ function PapersNavigator() {
 
 function ResultsNavigator() {
   return (
-    <ResultsStack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.surface1 },
-        headerTintColor: colors.ink,
-        headerTitleStyle: { fontFamily: 'Manrope', fontWeight: '700' },
-        headerShadowVisible: false,
-      }}
-    >
+    <ResultsStack.Navigator screenOptions={stackScreenOptions}>
       <ResultsStack.Screen name="ResultsList" component={ResultsScreen} options={{ title: 'Results' }} />
       <ResultsStack.Screen name="ResultDetail" component={ResultDetailScreen} options={{ title: 'Result Detail' }} />
     </ResultsStack.Navigator>
@@ -127,67 +136,73 @@ function ResultsNavigator() {
 
 function ProfileNavigator() {
   return (
-    <ProfileStack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.surface1 },
-        headerTintColor: colors.ink,
-        headerTitleStyle: { fontFamily: 'Manrope', fontWeight: '700' },
-        headerShadowVisible: false,
-      }}
-    >
+    <ProfileStack.Navigator screenOptions={stackScreenOptions}>
       <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} options={{ title: 'Profile' }} />
       <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Edit Profile' }} />
     </ProfileStack.Navigator>
   )
 }
 
+// ─── Tab Icon ─────────────────────────────────────────────────────────────────
+
+type TabIconName = keyof typeof Ionicons.glyphMap
+
+const TAB_ICONS: Record<string, [TabIconName, TabIconName]> = {
+  Home:     ['home',              'home-outline'],
+  Papers:   ['document-text',     'document-text-outline'],
+  Results:  ['checkmark-circle',  'checkmark-circle-outline'],
+  AIStudio: ['sparkles',          'sparkles-outline'],
+  Profile:  ['person',            'person-outline'],
+}
+
 // ─── Main Tab Navigator ───────────────────────────────────────────────────────
 
 function MainTabs() {
+  const insets = useSafeAreaInsets()
+
+  // Tab bar height: 49px content + bottom safe area
+  const tabBarHeight = 52 + Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0)
+
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: {
-          backgroundColor: colors.white,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-          paddingBottom: 4,
-          height: 60,
-        },
-        tabBarLabelStyle: {
-          fontFamily: 'Manrope',
-          fontSize: 11,
-          fontWeight: '600',
-        },
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap
-
-          switch (route.name) {
-            case 'Home':
-              iconName = focused ? 'home' : 'home-outline'
-              break
-            case 'Papers':
-              iconName = focused ? 'document-text' : 'document-text-outline'
-              break
-            case 'Results':
-              iconName = focused ? 'checkmark-circle' : 'checkmark-circle-outline'
-              break
-            case 'AIStudio':
-              iconName = focused ? 'sparkles' : 'sparkles-outline'
-              break
-            case 'Profile':
-              iconName = focused ? 'person' : 'person-outline'
-              break
-            default:
-              iconName = 'ellipse-outline'
-          }
-
-          return <Ionicons name={iconName} size={22} color={color} />
-        },
-      })}
+      screenOptions={({ route }) => {
+        const icons = TAB_ICONS[route.name] ?? ['ellipse', 'ellipse-outline']
+        return {
+          headerShown: false,
+          tabBarActiveTintColor: colors.accent,
+          tabBarInactiveTintColor: colors.subtle,
+          tabBarStyle: {
+            backgroundColor: colors.white,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: colors.border,
+            height: tabBarHeight,
+            paddingBottom: Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 6),
+            paddingTop: 6,
+            // Subtle shadow above the bar
+            ...Platform.select({
+              ios: {
+                shadowColor: colors.ink,
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.04,
+                shadowRadius: 12,
+              },
+              android: { elevation: 8 },
+            }),
+          },
+          tabBarLabelStyle: {
+            fontSize: 10,
+            fontWeight: '600',
+            marginTop: -2,
+          },
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? icons[0] : icons[1]}
+              size={22}
+              color={color}
+            />
+          ),
+        }
+      }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Papers" component={PapersNavigator} />
@@ -202,18 +217,55 @@ function MainTabs() {
 
 export default function RootNavigator() {
   const { isAuthenticated, isLoading } = useAuthStore()
+  const fadeAnim = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    if (!isLoading) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }).start()
+    }
+  }, [isLoading, fadeAnim])
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surface1 }}>
-        <ActivityIndicator size="large" color={colors.accent} />
+      <View style={loadingStyles.root}>
+        <View style={loadingStyles.mark}>
+          <Ionicons name="sparkles" size={28} color={colors.white} />
+        </View>
+        <ActivityIndicator
+          size="small"
+          color={colors.subtle}
+          style={{ marginTop: 32 }}
+        />
       </View>
     )
   }
 
   return (
-    <NavigationContainer>
-      {isAuthenticated ? <MainTabs /> : <AuthNavigator />}
-    </NavigationContainer>
+    <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
+      <NavigationContainer>
+        {isAuthenticated ? <MainTabs /> : <AuthNavigator />}
+      </NavigationContainer>
+    </Animated.View>
   )
 }
+
+const loadingStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.surface1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mark: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+})

@@ -1,9 +1,8 @@
 /**
  * Register Screen — B2C Individual Learner
- * Supports the full B2C registration flow (science_high_school, etc.)
  */
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   View,
   Text,
@@ -15,41 +14,57 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Animated,
+  useWindowDimensions,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Ionicons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { AuthStackParamList } from '../../navigation'
 import { authApi } from '../../api/auth'
 import { useAuthStore } from '../../stores/authStore'
 import { colors } from '../../theme/colors'
-import { radius, spacing } from '../../theme/spacing'
+import { radius, spacing, shadows } from '../../theme/spacing'
 import type { EducationLevel } from '../../types'
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>
 
-const EDUCATION_OPTIONS: { label: string; value: EducationLevel }[] = [
-  { label: 'School (Grades 11–12)', value: 'science_high_school' },
-  { label: 'Competitive Exams (JEE / NEET)', value: 'competitive_exams' },
-  { label: 'Commerce (Grade 11–12)', value: 'commerce_high_school' },
-  { label: 'Post Graduation', value: 'post_graduation' },
+const EDUCATION_OPTIONS: { label: string; sublabel: string; value: EducationLevel; icon: string }[] = [
+  { label: 'JEE / NEET', sublabel: 'Competitive exams', value: 'competitive_exams', icon: '🎯' },
 ]
 
 export default function RegisterScreen() {
   const navigation = useNavigation<Nav>()
-  const { setAuth } = useAuthStore()
+  useAuthStore()
+  const insets = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [educationLevel, setEducationLevel] = useState<EducationLevel>('science_high_school')
+  const [educationLevel, setEducationLevel] = useState<EducationLevel>('competitive_exams')
   const [standard, setStandard] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [focusedField, setFocusedField] = useState<string | null>(null)
+
+  // Entrance animation
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(20)).current
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 450, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 450, useNativeDriver: true }),
+    ]).start()
+  }, [fadeAnim, slideAnim])
 
   const handleRegister = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
-      Alert.alert('Missing fields', 'Please fill in all required fields including last name.')
+      Alert.alert('Missing fields', 'Please fill in all required fields.')
       return
     }
     if (password.length < 8) {
@@ -63,162 +78,228 @@ export default function RegisterScreen() {
 
     setLoading(true)
     try {
-      const authToken = await authApi.registerIndividual({
+      const challenge = await authApi.registerIndividual({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         email: email.trim(),
         password,
         confirm_password: confirmPassword,
         education_level: educationLevel,
-        standard: standard.trim() || undefined,
+        school_standard: standard.trim() || undefined,
       })
-      await setAuth(authToken)
+      navigation.navigate('VerifyEmail', {
+        email: challenge.email,
+        devOtp: challenge.dev_otp ?? undefined,
+      })
     } catch (err: any) {
       const detail = err?.response?.data?.detail
-      const message = typeof detail === 'string' ? detail : 'Registration failed. Please try again.'
+      const status = err?.response?.status
+      let message: string
+      if (typeof detail === 'string') {
+        message = detail
+      } else if (Array.isArray(detail)) {
+        message = detail.map((d: any) => d.msg || JSON.stringify(d)).join('\n')
+      } else if (!err?.response) {
+        message = 'Network error — could not reach the server.'
+      } else {
+        message = `Error ${status}: ${JSON.stringify(err?.response?.data)}`
+      }
       Alert.alert('Registration failed', message)
     } finally {
       setLoading(false)
     }
   }
 
+  const isSmall = width < 380
+  const hPad = isSmall ? spacing[4] : spacing[5]
+
+  const inputStyle = (field: string) => [
+    styles.inputWrap,
+    focusedField === field && styles.inputWrapFocused,
+  ]
+
   return (
     <KeyboardAvoidingView
       style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Create account</Text>
-          <Text style={styles.subtitle}>Join Eduraa and start practising</Text>
-        </View>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingHorizontal: hPad, paddingTop: insets.top + 16 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-        {/* Form */}
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <View style={[styles.field, { flex: 1, marginRight: spacing[2] }]}>
-              <Text style={styles.label}>First Name *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="First"
-                placeholderTextColor={colors.subtle}
-                value={firstName}
-                onChangeText={setFirstName}
-                autoCapitalize="words"
-              />
-            </View>
-            <View style={[styles.field, { flex: 1 }]}>
-              <Text style={styles.label}>Last Name *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Last"
-                placeholderTextColor={colors.subtle}
-                value={lastName}
-                onChangeText={setLastName}
-                autoCapitalize="words"
-              />
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={20} color={colors.ink} />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title}>Create account</Text>
+              <Text style={styles.subtitle}>Join Eduraa and start practising</Text>
             </View>
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Email *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="you@example.com"
-              placeholderTextColor={colors.subtle}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
+          {/* Form Card */}
+          <View style={[styles.card, shadows.sm]}>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Password * (min 8 characters)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Create a password"
-              placeholderTextColor={colors.subtle}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-          </View>
+            {/* Name row */}
+            <View style={styles.row}>
+              <View style={[styles.field, { flex: 1, marginRight: spacing[2] }]}>
+                <Text style={styles.label}>First name</Text>
+                <View style={inputStyle('firstName')}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    placeholder="First"
+                    placeholderTextColor={colors.placeholder}
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    autoCapitalize="words"
+                    onFocus={() => setFocusedField('firstName')}
+                    onBlur={() => setFocusedField(null)}
+                  />
+                </View>
+              </View>
+              <View style={[styles.field, { flex: 1 }]}>
+                <Text style={styles.label}>Last name</Text>
+                <View style={inputStyle('lastName')}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    placeholder="Last"
+                    placeholderTextColor={colors.placeholder}
+                    value={lastName}
+                    onChangeText={setLastName}
+                    autoCapitalize="words"
+                    onFocus={() => setFocusedField('lastName')}
+                    onBlur={() => setFocusedField(null)}
+                  />
+                </View>
+              </View>
+            </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Confirm Password *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Repeat your password"
-              placeholderTextColor={colors.subtle}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-            />
-          </View>
+            {/* Email */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Email</Text>
+              <View style={inputStyle('email')}>
+                <Ionicons name="mail-outline" size={16} color={focusedField === 'email' ? colors.accent : colors.subtle} style={styles.fieldIcon} />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="you@example.com"
+                  placeholderTextColor={colors.placeholder}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
+                />
+              </View>
+            </View>
 
-          {/* Education Level */}
-          <View style={styles.field}>
-            <Text style={styles.label}>I am preparing for</Text>
-            <View style={styles.optionGrid}>
-              {EDUCATION_OPTIONS.map((opt) => (
-                <TouchableOpacity
-                  key={opt.value}
-                  style={[
-                    styles.optionPill,
-                    educationLevel === opt.value && styles.optionPillActive,
-                  ]}
-                  onPress={() => setEducationLevel(opt.value)}
-                >
-                  <Text
-                    style={[
-                      styles.optionPillText,
-                      educationLevel === opt.value && styles.optionPillTextActive,
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
+            {/* Password */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Password <Text style={styles.hint}>(min 8 characters)</Text></Text>
+              <View style={inputStyle('password')}>
+                <Ionicons name="lock-closed-outline" size={16} color={focusedField === 'password' ? colors.accent : colors.subtle} style={styles.fieldIcon} />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Create a password"
+                  placeholderTextColor={colors.placeholder}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                />
+                <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={16} color={colors.subtle} />
                 </TouchableOpacity>
-              ))}
+              </View>
             </View>
+
+            {/* Confirm Password */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Confirm password</Text>
+              <View style={inputStyle('confirmPassword')}>
+                <Ionicons name="lock-closed-outline" size={16} color={focusedField === 'confirmPassword' ? colors.accent : colors.subtle} style={styles.fieldIcon} />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Repeat your password"
+                  placeholderTextColor={colors.placeholder}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showPassword}
+                  onFocus={() => setFocusedField('confirmPassword')}
+                  onBlur={() => setFocusedField(null)}
+                />
+              </View>
+            </View>
+
+            {/* Education Level */}
+            <View style={styles.field}>
+              <Text style={styles.label}>I'm preparing for</Text>
+              <View style={styles.educationGrid}>
+                {EDUCATION_OPTIONS.map((opt) => {
+                  const active = educationLevel === opt.value
+                  return (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[styles.eduCard, active && styles.eduCardActive]}
+                      onPress={() => setEducationLevel(opt.value)}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={styles.eduIcon}>{opt.icon}</Text>
+                      <Text style={[styles.eduLabel, active && styles.eduLabelActive]}>{opt.label}</Text>
+                      <Text style={[styles.eduSub, active && styles.eduSubActive]}>{opt.sublabel}</Text>
+                    </TouchableOpacity>
+                  )
+                })}
+              </View>
+            </View>
+
+            {/* Class */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Class / Standard <Text style={styles.optional}>(optional)</Text></Text>
+              <View style={inputStyle('standard')}>
+                <Ionicons name="school-outline" size={16} color={focusedField === 'standard' ? colors.accent : colors.subtle} style={styles.fieldIcon} />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="e.g. 11 or 12"
+                  placeholderTextColor={colors.placeholder}
+                  value={standard}
+                  onChangeText={setStandard}
+                  keyboardType="numeric"
+                  onFocus={() => setFocusedField('standard')}
+                  onBlur={() => setFocusedField(null)}
+                />
+              </View>
+            </View>
+
+            {/* Submit */}
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleRegister}
+              disabled={loading}
+              activeOpacity={0.82}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.white} size="small" />
+              ) : (
+                <Text style={styles.buttonText}>Create Account</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.loginLink} onPress={() => navigation.goBack()}>
+              <Text style={styles.loginLinkText}>
+                Already have an account?{'  '}
+                <Text style={styles.loginLinkAccent}>Sign in</Text>
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Class / Standard</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. 11 or 12"
-              placeholderTextColor={colors.subtle}
-              value={standard}
-              onChangeText={setStandard}
-              keyboardType="numeric"
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleRegister}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Create Account</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.loginLink} onPress={() => navigation.goBack()}>
-            <Text style={styles.loginLinkText}>
-              Already have an account?{' '}
-              <Text style={styles.loginLinkAccent}>Sign in</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
+          <View style={{ height: 40 }} />
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -226,65 +307,125 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface1 },
-  scroll: { flexGrow: 1, padding: spacing[6] },
-  header: { marginBottom: spacing[6] },
-  backBtn: { marginBottom: spacing[4] },
-  backText: { color: colors.accent, fontWeight: '600', fontSize: 14 },
-  title: { fontSize: 26, fontWeight: '800', color: colors.ink, marginBottom: 4 },
-  subtitle: { fontSize: 14, color: colors.muted },
+  scroll: { flexGrow: 1, paddingBottom: 32 },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[3],
+    marginBottom: spacing[5],
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    backgroundColor: colors.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.ink,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: colors.muted,
+    marginTop: 3,
+  },
+
   card: {
     backgroundColor: colors.card,
     borderRadius: radius['2xl'],
-    padding: spacing[6],
-    borderWidth: 1,
+    padding: spacing[5],
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
   },
+
   row: { flexDirection: 'row' },
   field: { marginBottom: spacing[4] },
   label: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '600',
     color: colors.ink,
-    textTransform: 'uppercase',
+    marginBottom: 6,
     letterSpacing: 0.1,
-    marginBottom: spacing[1],
   },
-  input: {
-    height: 48,
+  hint: { color: colors.subtle, fontWeight: '400' },
+  optional: { color: colors.subtle, fontWeight: '400' },
+
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 50,
     borderRadius: radius.lg,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.surface2,
-    paddingHorizontal: spacing[4],
+    paddingHorizontal: spacing[3],
+  },
+  inputWrapFocused: {
+    borderColor: colors.accent,
+    backgroundColor: colors.card,
+  },
+  fieldIcon: { marginRight: spacing[2] },
+  input: {
     fontSize: 15,
     color: colors.ink,
+    paddingVertical: 0,
   },
-  optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  optionPill: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: radius.full,
-    borderWidth: 1,
+
+  educationGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+    marginTop: 4,
+  },
+  eduCard: {
+    width: '47.5%',
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.surface2,
+    padding: spacing[3],
+    alignItems: 'flex-start',
+    gap: 2,
   },
-  optionPillActive: {
-    backgroundColor: colors.accent,
+  eduCardActive: {
     borderColor: colors.accent,
+    backgroundColor: colors.accentLight,
   },
-  optionPillText: { fontSize: 12, fontWeight: '600', color: colors.muted },
-  optionPillTextActive: { color: colors.white },
+  eduIcon: { fontSize: 18, marginBottom: 2 },
+  eduLabel: { fontSize: 12, fontWeight: '700', color: colors.ink },
+  eduLabelActive: { color: colors.accentStrong },
+  eduSub: { fontSize: 10, color: colors.muted },
+  eduSubActive: { color: colors.accent },
+
   button: {
-    height: 50,
+    height: 52,
     backgroundColor: colors.accent,
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing[2],
   },
-  buttonDisabled: { opacity: 0.7 },
-  buttonText: { color: colors.white, fontSize: 15, fontWeight: '700' },
-  loginLink: { marginTop: spacing[4], alignItems: 'center' },
+  buttonDisabled: { opacity: 0.65 },
+  buttonText: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+
+  loginLink: {
+    marginTop: spacing[4],
+    alignItems: 'center',
+    paddingVertical: spacing[1],
+  },
   loginLinkText: { fontSize: 14, color: colors.muted },
   loginLinkAccent: { color: colors.accent, fontWeight: '700' },
 })

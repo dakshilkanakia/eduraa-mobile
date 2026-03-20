@@ -58,18 +58,14 @@ export interface B2CProfileRead {
   school_name?: string
   school_board?: string
   school_standard?: string
-  science_standard?: string
-  science_exam?: string[]
-  state_cet_states?: string[]
   subjects?: string[]
-  commerce_track?: string
-  post_grad_track?: string
-  mba_exam?: string
-  abroad_exam?: string
   board?: string
   standard?: string
   division?: string
   competitive_exam_selected: boolean
+  is_email_verified: boolean
+  auth_provider: string
+  profile_completed: boolean
   is_active: boolean
   created_at: string
   updated_at: string
@@ -80,19 +76,12 @@ export interface B2CRegisterRequest {
   last_name: string
   email: string
   password: string
+  confirm_password: string
   education_level: EducationLevel
   school_name?: string
-  board?: string
-  standard?: string
-  division?: string
-  science_standard?: string
-  science_exam?: string[]
-  state_cet_states?: string[]
+  school_board?: string
+  school_standard?: string
   subjects?: string[]
-  commerce_track?: string
-  post_grad_track?: string
-  mba_exam?: string
-  abroad_exam?: string
 }
 
 // ─── Papers ───────────────────────────────────────────────────────────────────
@@ -393,16 +382,148 @@ export interface ChatResponse {
   message_id: string
 }
 
+export interface ChatConversation {
+  id: string
+  title: string | null
+  last_message_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ChatMessage {
+  id: string
+  conversation_id: string
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string
+}
+
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
-export interface StudentDashboardLab {
-  total_papers: number
+export interface DashboardSubmission {
+  id: string
+  kind: string
+  paper: string          // paper title
+  exam: string | null
+  subject: string | null
+  score: number | null
+  max_score: number | null
+  date: string
+  status: string
+  cat: string | null
+  sem: number | null
+  difficulty: string | null
+  time_taken_seconds?: number | null
+}
+
+export interface DashboardExamScore {
+  exam: string
+  cat: string | null
+  sem: number | null
+  date: string
+  avg: number
+  subject_scores: Record<string, number>
+}
+
+// Used in question_type_performance list (full stats)
+export interface DashboardQuestionTypePerf {
+  type: string
+  scored: number
+  total: number
+  attempts: number
+  accuracy: number  // 0-100
+}
+
+// Used in subject_question_types map (summary row from backend SubjectQuestionTypeRow)
+export interface SubjectQuestionTypeRow {
+  type: string
+  accuracy: number  // 0-100
+  marks: number
+}
+
+export interface DashboardSummary {
   total_submissions: number
-  average_score: number
-  recent_submissions: PaperSubmissionRead[]
-  subject_performance: Record<string, number>
-  improvement_areas?: string[]
-  ai_coach_summary?: string
+  total_checked: number
+  distinct_papers: number
+  generated_papers: number
+}
+
+export interface DashboardSemester {
+  id: string
+  name: string
+  start_date?: string | null
+  end_date?: string | null
+  index: number
+}
+
+export interface DashboardSubjectOption {
+  id?: string | null
+  name: string
+  code?: string | null
+}
+
+export interface DashboardUpcomingExam {
+  id: string
+  name: string
+  date?: string | null
+  subject?: string | null
+  cat?: string | null
+}
+
+export interface DashboardAiUsageRow {
+  week: string
+  conversations: number
+  messages: number
+}
+
+export interface DashboardTopicMastery {
+  topic: string
+  subject?: string | null
+  mastery: number
+  difficulty?: string | null
+  chapter?: string | null
+}
+
+export interface DashboardChapterMastery {
+  chapter: string
+  subject?: string | null
+  mastery: number
+  difficulty?: string | null
+  topics_count: number
+}
+
+export interface DashboardExamQTypeBreakdown {
+  exam: string
+  date?: string | null
+  type_counts: Record<string, number>
+}
+
+export interface StudentDashboardLab {
+  student: {
+    first_name: string
+    last_name: string
+    student_id: string
+    standard?: string | null
+    division?: string | null
+    school_name?: string | null
+    board?: string | null
+    branch_name?: string | null
+    subjects: string[]
+    class_teacher_name?: string | null
+    class_size?: number | null
+  }
+  semesters: DashboardSemester[]
+  subjects: DashboardSubjectOption[]
+  submissions: DashboardSubmission[]
+  exam_scores: DashboardExamScore[]
+  question_type_performance: DashboardQuestionTypePerf[]
+  subject_question_types: Record<string, SubjectQuestionTypeRow[]>
+  exam_question_type_breakdown: DashboardExamQTypeBreakdown[]
+  summary: DashboardSummary
+  topic_mastery: DashboardTopicMastery[]
+  chapter_mastery: DashboardChapterMastery[]
+  upcoming_exams: DashboardUpcomingExam[]
+  ai_usage: DashboardAiUsageRow[]
 }
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
