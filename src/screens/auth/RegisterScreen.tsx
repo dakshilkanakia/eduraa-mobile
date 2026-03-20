@@ -51,6 +51,13 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
 
+  const firstNameRef = useRef<TextInput>(null)
+  const lastNameRef = useRef<TextInput>(null)
+  const emailRef = useRef<TextInput>(null)
+  const passwordRef = useRef<TextInput>(null)
+  const confirmPasswordRef = useRef<TextInput>(null)
+  const standardRef = useRef<TextInput>(null)
+
   // Entrance animation
   const fadeAnim = useRef(new Animated.Value(0)).current
   const slideAnim = useRef(new Animated.Value(20)).current
@@ -148,8 +155,9 @@ export default function RegisterScreen() {
             <View style={styles.row}>
               <View style={[styles.field, { flex: 1, marginRight: spacing[2] }]}>
                 <Text style={styles.label}>First name</Text>
-                <View style={inputStyle('firstName')}>
+                <TouchableOpacity style={inputStyle('firstName')} onPress={() => firstNameRef.current?.focus()} activeOpacity={1}>
                   <TextInput
+                    ref={firstNameRef}
                     style={[styles.input, { flex: 1 }]}
                     placeholder="First"
                     placeholderTextColor={colors.placeholder}
@@ -158,13 +166,16 @@ export default function RegisterScreen() {
                     autoCapitalize="words"
                     onFocus={() => setFocusedField('firstName')}
                     onBlur={() => setFocusedField(null)}
+                    returnKeyType="next"
+                    onSubmitEditing={() => lastNameRef.current?.focus()}
                   />
-                </View>
+                </TouchableOpacity>
               </View>
               <View style={[styles.field, { flex: 1 }]}>
                 <Text style={styles.label}>Last name</Text>
-                <View style={inputStyle('lastName')}>
+                <TouchableOpacity style={inputStyle('lastName')} onPress={() => lastNameRef.current?.focus()} activeOpacity={1}>
                   <TextInput
+                    ref={lastNameRef}
                     style={[styles.input, { flex: 1 }]}
                     placeholder="Last"
                     placeholderTextColor={colors.placeholder}
@@ -173,17 +184,20 @@ export default function RegisterScreen() {
                     autoCapitalize="words"
                     onFocus={() => setFocusedField('lastName')}
                     onBlur={() => setFocusedField(null)}
+                    returnKeyType="next"
+                    onSubmitEditing={() => emailRef.current?.focus()}
                   />
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
 
             {/* Email */}
             <View style={styles.field}>
               <Text style={styles.label}>Email</Text>
-              <View style={inputStyle('email')}>
+              <TouchableOpacity style={inputStyle('email')} onPress={() => emailRef.current?.focus()} activeOpacity={1}>
                 <Ionicons name="mail-outline" size={16} color={focusedField === 'email' ? colors.accent : colors.subtle} style={styles.fieldIcon} />
                 <TextInput
+                  ref={emailRef}
                   style={[styles.input, { flex: 1 }]}
                   placeholder="you@example.com"
                   placeholderTextColor={colors.placeholder}
@@ -193,16 +207,19 @@ export default function RegisterScreen() {
                   autoCapitalize="none"
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
                 />
-              </View>
+              </TouchableOpacity>
             </View>
 
             {/* Password */}
             <View style={styles.field}>
               <Text style={styles.label}>Password <Text style={styles.hint}>(min 8 characters)</Text></Text>
-              <View style={inputStyle('password')}>
+              <TouchableOpacity style={inputStyle('password')} onPress={() => passwordRef.current?.focus()} activeOpacity={1}>
                 <Ionicons name="lock-closed-outline" size={16} color={focusedField === 'password' ? colors.accent : colors.subtle} style={styles.fieldIcon} />
                 <TextInput
+                  ref={passwordRef}
                   style={[styles.input, { flex: 1 }]}
                   placeholder="Create a password"
                   placeholderTextColor={colors.placeholder}
@@ -211,19 +228,22 @@ export default function RegisterScreen() {
                   secureTextEntry={!showPassword}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
+                  returnKeyType="next"
+                  onSubmitEditing={() => confirmPasswordRef.current?.focus()}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={16} color={colors.subtle} />
                 </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             </View>
 
             {/* Confirm Password */}
             <View style={styles.field}>
               <Text style={styles.label}>Confirm password</Text>
-              <View style={inputStyle('confirmPassword')}>
+              <TouchableOpacity style={inputStyle('confirmPassword')} onPress={() => confirmPasswordRef.current?.focus()} activeOpacity={1}>
                 <Ionicons name="lock-closed-outline" size={16} color={focusedField === 'confirmPassword' ? colors.accent : colors.subtle} style={styles.fieldIcon} />
                 <TextInput
+                  ref={confirmPasswordRef}
                   style={[styles.input, { flex: 1 }]}
                   placeholder="Repeat your password"
                   placeholderTextColor={colors.placeholder}
@@ -232,8 +252,10 @@ export default function RegisterScreen() {
                   secureTextEntry={!showPassword}
                   onFocus={() => setFocusedField('confirmPassword')}
                   onBlur={() => setFocusedField(null)}
+                  returnKeyType="next"
+                  onSubmitEditing={() => standardRef.current?.focus()}
                 />
-              </View>
+              </TouchableOpacity>
             </View>
 
             {/* Education Level */}
@@ -261,9 +283,10 @@ export default function RegisterScreen() {
             {/* Class */}
             <View style={styles.field}>
               <Text style={styles.label}>Class / Standard <Text style={styles.optional}>(optional)</Text></Text>
-              <View style={inputStyle('standard')}>
+              <TouchableOpacity style={inputStyle('standard')} onPress={() => standardRef.current?.focus()} activeOpacity={1}>
                 <Ionicons name="school-outline" size={16} color={focusedField === 'standard' ? colors.accent : colors.subtle} style={styles.fieldIcon} />
                 <TextInput
+                  ref={standardRef}
                   style={[styles.input, { flex: 1 }]}
                   placeholder="e.g. 11 or 12"
                   placeholderTextColor={colors.placeholder}
@@ -272,8 +295,9 @@ export default function RegisterScreen() {
                   keyboardType="numeric"
                   onFocus={() => setFocusedField('standard')}
                   onBlur={() => setFocusedField(null)}
+                  returnKeyType="done"
                 />
-              </View>
+              </TouchableOpacity>
             </View>
 
             {/* Submit */}

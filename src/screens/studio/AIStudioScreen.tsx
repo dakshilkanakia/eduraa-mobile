@@ -118,6 +118,78 @@ const td = StyleSheet.create({
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.subtle },
 })
 
+// ─── Structured response renderer ────────────────────────────────────────────
+
+interface AIBlock {
+  type: string
+  role?: string
+  content?: string
+  intent?: string
+}
+
+interface AIStructuredResponse {
+  type: string
+  blocks: AIBlock[]
+}
+
+function parseAIContent(content: string): AIStructuredResponse | null {
+  try {
+    const parsed = JSON.parse(content)
+    if (parsed?.type && Array.isArray(parsed?.blocks)) return parsed
+    return null
+  } catch {
+    return null
+  }
+}
+
+function AIBlocks({ blocks }: { blocks: AIBlock[] }) {
+  return (
+    <View style={{ gap: spacing[2] }}>
+      {blocks.map((block, i) => {
+        if (block.type === 'text') {
+          const isPrimary = block.role === 'primary'
+          return (
+            <Text
+              key={i}
+              style={[mb.aiText, isPrimary ? mb.blockPrimary : mb.blockSecondary]}
+            >
+              {block.content}
+            </Text>
+          )
+        }
+        if (block.type === 'callout') {
+          const isWarning = block.intent === 'warning'
+          const isTip = block.intent === 'tip'
+          return (
+            <View
+              key={i}
+              style={[
+                mb.callout,
+                isWarning && mb.calloutWarning,
+                isTip && mb.calloutTip,
+              ]}
+            >
+              <Ionicons
+                name={isWarning ? 'warning-outline' : 'bulb-outline'}
+                size={13}
+                color={isWarning ? colors.warning : colors.accent}
+                style={{ marginTop: 1, flexShrink: 0 }}
+              />
+              <Text style={[mb.calloutText, isWarning && mb.calloutTextWarning]}>
+                {block.content}
+              </Text>
+            </View>
+          )
+        }
+        // fallback for unknown block types
+        return block.content ? (
+          <Text key={i} style={mb.aiText}>{block.content}</Text>
+        ) : null
+      })}
+    </View>
+  )
+}
+
 // ─── Message bubble ───────────────────────────────────────────────────────────
 
 const MessageBubble = React.memo(function MessageBubble({ msg }: { msg: LocalMessage }) {
@@ -131,6 +203,8 @@ const MessageBubble = React.memo(function MessageBubble({ msg }: { msg: LocalMes
       Animated.timing(slideAnim, { toValue: 0, duration: 220, useNativeDriver: true }),
     ]).start()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const structured = !isUser ? parseAIContent(msg.content) : null
 
   return (
     <Animated.View
@@ -146,7 +220,11 @@ const MessageBubble = React.memo(function MessageBubble({ msg }: { msg: LocalMes
         </View>
       )}
       <View style={[mb.bubble, isUser ? mb.userBubble : mb.aiBubble, !isUser && shadows.xs]}>
-        <Text style={[mb.text, isUser ? mb.userText : mb.aiText]}>{msg.content}</Text>
+        {structured ? (
+          <AIBlocks blocks={structured.blocks} />
+        ) : (
+          <Text style={[mb.text, isUser ? mb.userText : mb.aiText]}>{msg.content}</Text>
+        )}
         <Text style={[mb.time, isUser ? mb.userTime : mb.aiTime]}>{msgTime(msg.timestamp)}</Text>
       </View>
     </Animated.View>
@@ -171,7 +249,34 @@ const mb = StyleSheet.create({
   },
   text: { fontSize: 14, lineHeight: 22 },
   userText: { color: colors.white },
-  aiText: { color: colors.ink },
+  aiText: { color: colors.ink, fontSize: 14, lineHeight: 22 },
+  blockPrimary: { fontSize: 14, lineHeight: 22, fontWeight: '500' },
+  blockSecondary: { fontSize: 13, lineHeight: 20, color: colors.muted },
+  callout: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[2],
+    backgroundColor: colors.accentLight,
+    borderRadius: radius.lg,
+    padding: spacing[3],
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.accentMid,
+  },
+  calloutWarning: {
+    backgroundColor: colors.warningBg,
+    borderColor: colors.warningBorder,
+  },
+  calloutTip: {
+    backgroundColor: colors.accentLight,
+    borderColor: colors.accentMid,
+  },
+  calloutText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.accentStrong,
+  },
+  calloutTextWarning: { color: colors.warningText },
   time: { fontSize: 10 },
   userTime: { color: 'rgba(255,255,255,0.55)', textAlign: 'right' },
   aiTime: { color: colors.subtle },

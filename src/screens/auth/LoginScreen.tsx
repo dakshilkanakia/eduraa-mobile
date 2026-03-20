@@ -37,6 +37,8 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false)
   const [emailFocused, setEmailFocused] = useState(false)
   const [passwordFocused, setPasswordFocused] = useState(false)
+  const emailRef = useRef<TextInput>(null)
+  const passwordRef = useRef<TextInput>(null)
 
   // Screen entrance animation
   const fadeAnim = useRef(new Animated.Value(0)).current
@@ -97,7 +99,11 @@ export default function LoginScreen() {
             {/* Email */}
             <View style={styles.field}>
               <Text style={styles.label}>Email</Text>
-              <View style={[styles.inputWrap, emailFocused && styles.inputWrapFocused]}>
+              <TouchableOpacity
+                style={[styles.inputWrap, emailFocused && styles.inputWrapFocused]}
+                onPress={() => emailRef.current?.focus()}
+                activeOpacity={1}
+              >
                 <Ionicons
                   name="mail-outline"
                   size={17}
@@ -105,6 +111,7 @@ export default function LoginScreen() {
                   style={styles.inputIcon}
                 />
                 <TextInput
+                  ref={emailRef}
                   style={styles.input}
                   placeholder="you@example.com"
                   placeholderTextColor={colors.placeholder}
@@ -115,14 +122,20 @@ export default function LoginScreen() {
                   autoCorrect={false}
                   onFocus={() => setEmailFocused(true)}
                   onBlur={() => setEmailFocused(false)}
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
                 />
-              </View>
+              </TouchableOpacity>
             </View>
 
             {/* Password */}
             <View style={styles.field}>
               <Text style={styles.label}>Password</Text>
-              <View style={[styles.inputWrap, passwordFocused && styles.inputWrapFocused]}>
+              <TouchableOpacity
+                style={[styles.inputWrap, passwordFocused && styles.inputWrapFocused]}
+                onPress={() => passwordRef.current?.focus()}
+                activeOpacity={1}
+              >
                 <Ionicons
                   name="lock-closed-outline"
                   size={17}
@@ -130,6 +143,7 @@ export default function LoginScreen() {
                   style={styles.inputIcon}
                 />
                 <TextInput
+                  ref={passwordRef}
                   style={[styles.input, { flex: 1 }]}
                   placeholder="Your password"
                   placeholderTextColor={colors.placeholder}
@@ -138,6 +152,8 @@ export default function LoginScreen() {
                   secureTextEntry={!showPassword}
                   onFocus={() => setPasswordFocused(true)}
                   onBlur={() => setPasswordFocused(false)}
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(v => !v)}
@@ -150,7 +166,7 @@ export default function LoginScreen() {
                     color={colors.subtle}
                   />
                 </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             </View>
 
             {/* Sign In Button */}
