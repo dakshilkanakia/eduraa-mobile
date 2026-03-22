@@ -26,6 +26,7 @@ import { authApi } from '../../api/auth'
 import { useAuthStore } from '../../stores/authStore'
 import { colors } from '../../theme/colors'
 import { radius, spacing, shadows } from '../../theme/spacing'
+import { fonts } from '../../theme/fonts'
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'VerifyEmail'>
 type Route = RouteProp<AuthStackParamList, 'VerifyEmail'>
@@ -247,11 +248,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '800',
+    fontFamily: fonts.displayBold,
     color: colors.ink,
     letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 13,
+    fontFamily: fonts.regular,
     color: colors.muted,
     marginTop: 4,
     lineHeight: 18,
@@ -302,7 +305,7 @@ const styles = StyleSheet.create({
   },
 
   field: { gap: 6 },
-  label: { fontSize: 12, fontWeight: '600', color: colors.ink, letterSpacing: 0.1 },
+  label: { fontSize: 12, fontWeight: '600', fontFamily: fonts.semibold, color: colors.ink, letterSpacing: 0.1 },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -320,6 +323,7 @@ const styles = StyleSheet.create({
   fieldIcon: { marginRight: spacing[2] },
   input: {
     fontSize: 20,
+    fontFamily: fonts.bold,
     color: colors.ink,
     paddingVertical: 0,
     letterSpacing: 4,
@@ -337,6 +341,7 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 15,
     fontWeight: '700',
+    fontFamily: fonts.bold,
     letterSpacing: 0.2,
   },
 

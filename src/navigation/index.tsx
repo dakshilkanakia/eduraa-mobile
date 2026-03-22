@@ -87,6 +87,7 @@ const stackScreenOptions = {
     fontSize: 16,
     fontWeight: '600' as const,
     color: colors.ink,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
   },
   headerShadowVisible: false,
   headerBackTitleVisible: false,
@@ -169,30 +170,29 @@ function MainTabs() {
         const icons = TAB_ICONS[route.name] ?? ['ellipse', 'ellipse-outline']
         return {
           headerShown: false,
-          tabBarActiveTintColor: colors.accent,
-          tabBarInactiveTintColor: colors.subtle,
+          tabBarActiveTintColor: '#ffffff',
+          tabBarInactiveTintColor: colors.sidebarText,
           tabBarStyle: {
-            backgroundColor: colors.white,
-            borderTopWidth: StyleSheet.hairlineWidth,
-            borderTopColor: colors.border,
+            backgroundColor: colors.sidebar,
+            borderTopWidth: 0,
             height: tabBarHeight,
             paddingBottom: Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 6),
             paddingTop: 6,
-            // Subtle shadow above the bar
             ...Platform.select({
               ios: {
-                shadowColor: colors.ink,
+                shadowColor: '#000',
                 shadowOffset: { width: 0, height: -4 },
-                shadowOpacity: 0.04,
+                shadowOpacity: 0.2,
                 shadowRadius: 12,
               },
-              android: { elevation: 8 },
+              android: { elevation: 12 },
             }),
           },
           tabBarLabelStyle: {
             fontSize: 10,
             fontWeight: '600',
             marginTop: -2,
+            fontFamily: 'Manrope_600SemiBold',
           },
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
@@ -263,7 +263,7 @@ const loadingStyles = StyleSheet.create({
   mark: {
     width: 60,
     height: 60,
-    borderRadius: 18,
+    borderRadius: 16,
     backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',

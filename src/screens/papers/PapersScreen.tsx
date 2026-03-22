@@ -18,6 +18,7 @@ import type { PapersStackParamList } from '../../navigation'
 import { papersApi } from '../../api/papers'
 import { colors } from '../../theme/colors'
 import { spacing, radius, shadows } from '../../theme/spacing'
+import { fonts } from '../../theme/fonts'
 import type { PaperListItem } from '../../types'
 
 type Nav = NativeStackNavigationProp<PapersStackParamList, 'PapersList'>
@@ -176,6 +177,7 @@ const styles = StyleSheet.create({
   generateBtnTitle: {
     fontSize: 14,
     fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.white,
   },
   generateBtnSub: {
@@ -203,6 +205,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.ink,
     flex: 1,
     lineHeight: 21,
@@ -220,6 +223,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 11,
+    fontFamily: fonts.regular,
     color: colors.muted,
   },
   cardArrow: {
@@ -249,9 +253,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.ink },
+  emptyTitle: { fontSize: 17, fontWeight: '700', fontFamily: fonts.displaySemibold, color: colors.ink },
   emptyBody: {
     fontSize: 14,
+    fontFamily: fonts.regular,
     color: colors.muted,
     textAlign: 'center',
     maxWidth: 240,

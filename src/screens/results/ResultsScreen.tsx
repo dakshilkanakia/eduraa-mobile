@@ -19,6 +19,7 @@ import type { ResultsStackParamList } from '../../navigation'
 import { checkedPapersApi } from '../../api/checkedPapers'
 import { colors } from '../../theme/colors'
 import { spacing, radius, shadows } from '../../theme/spacing'
+import { fonts } from '../../theme/fonts'
 import type { CheckedPaper } from '../../types'
 
 type Nav = NativeStackNavigationProp<ResultsStackParamList, 'ResultsList'>
@@ -271,8 +272,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[2],
     alignItems: 'center',
   },
-  avgText: { fontSize: 22, fontWeight: '800' },
-  avgLabel: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginTop: -2 },
+  avgText: { fontSize: 22, fontWeight: '800', fontFamily: fonts.displayBold },
+  avgLabel: { fontSize: 10, fontWeight: '700', fontFamily: fonts.bold, textTransform: 'uppercase', marginTop: -2 },
 
   list: { paddingTop: spacing[4] },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing[3] },
@@ -312,14 +313,15 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.ink,
     lineHeight: 21,
   },
-  subjectText: { fontSize: 12, color: colors.muted },
+  subjectText: { fontSize: 12, fontFamily: fonts.regular, color: colors.muted },
   scoreSection: {},
   scoreRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing[2] },
-  scoreNum: { fontSize: 26, fontWeight: '800' },
-  scoreMax: { fontSize: 15, color: colors.muted, fontWeight: '600' },
+  scoreNum: { fontSize: 26, fontWeight: '800', fontFamily: fonts.displayBold },
+  scoreMax: { fontSize: 15, color: colors.muted, fontWeight: '600', fontFamily: fonts.semibold },
   pctBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -346,9 +348,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.ink },
+  emptyTitle: { fontSize: 17, fontWeight: '700', fontFamily: fonts.displaySemibold, color: colors.ink },
   emptyBody: {
     fontSize: 14,
+    fontFamily: fonts.regular,
     color: colors.muted,
     textAlign: 'center',
     maxWidth: 260,

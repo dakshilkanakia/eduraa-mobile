@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { colors } from '../../theme/colors'
 import { spacing, radius, shadows } from '../../theme/spacing'
+import { fonts } from '../../theme/fonts'
 import { aiApi } from '../../api/ai'
 import type { ChatConversation, ChatMessage } from '../../types'
 
@@ -247,11 +248,11 @@ const mb = StyleSheet.create({
     borderBottomLeftRadius: 4,
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
   },
-  text: { fontSize: 14, lineHeight: 22 },
+  text: { fontSize: 14, lineHeight: 22, fontFamily: fonts.regular },
   userText: { color: colors.white },
-  aiText: { color: colors.ink, fontSize: 14, lineHeight: 22 },
-  blockPrimary: { fontSize: 14, lineHeight: 22, fontWeight: '500' },
-  blockSecondary: { fontSize: 13, lineHeight: 20, color: colors.muted },
+  aiText: { color: colors.ink, fontSize: 14, lineHeight: 22, fontFamily: fonts.regular },
+  blockPrimary: { fontSize: 14, lineHeight: 22, fontWeight: '500', fontFamily: fonts.medium },
+  blockSecondary: { fontSize: 13, lineHeight: 20, fontFamily: fonts.regular, color: colors.muted },
   callout: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -471,7 +472,7 @@ const hp = StyleSheet.create({
     width: 28, height: 28, borderRadius: 8,
     backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
   },
-  title: { fontSize: 15, fontWeight: '800', color: colors.ink, letterSpacing: -0.2 },
+  title: { fontSize: 15, fontWeight: '800', fontFamily: fonts.displayBold, color: colors.ink, letterSpacing: -0.2 },
   closeBtn: {
     width: 32, height: 32, borderRadius: radius.md,
     backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center',
@@ -489,7 +490,7 @@ const hp = StyleSheet.create({
     width: 26, height: 26, borderRadius: radius.sm,
     backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center',
   },
-  newBtnText: { fontSize: 13, fontWeight: '700', color: colors.accent },
+  newBtnText: { fontSize: 13, fontWeight: '700', fontFamily: fonts.bold, color: colors.accent },
 
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginBottom: spacing[2] },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 40 },
@@ -507,7 +508,7 @@ const hp = StyleSheet.create({
     borderRadius: radius.lg, marginHorizontal: spacing[2],
   },
   convRowActive: { backgroundColor: colors.accentLight },
-  convTitle: { fontSize: 13, fontWeight: '500', color: colors.ink },
+  convTitle: { fontSize: 13, fontWeight: '500', fontFamily: fonts.medium, color: colors.ink },
   convTitleActive: { fontWeight: '700', color: colors.accentStrong },
   convTime: { fontSize: 11, color: colors.subtle, marginTop: 2 },
 })
@@ -776,7 +777,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface2,
   },
   topCenter: { flex: 1, alignItems: 'center', gap: 3 },
-  topTitle: { fontSize: 15, fontWeight: '700', color: colors.ink, letterSpacing: -0.2 },
+  topTitle: { fontSize: 15, fontWeight: '700', fontFamily: fonts.displaySemibold, color: colors.ink, letterSpacing: -0.2 },
   onlinePill: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success },
   onlineText: { fontSize: 11, color: colors.success, fontWeight: '600' },
@@ -814,7 +815,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  chipText: { flex: 1, fontSize: 13, fontWeight: '600', color: colors.accentStrong },
+  chipText: { flex: 1, fontSize: 13, fontWeight: '600', fontFamily: fonts.semibold, color: colors.accentStrong },
 
   // Input bar
   inputBar: {
@@ -847,6 +848,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
+    fontFamily: fonts.regular,
     color: colors.ink,
     maxHeight: 130,
     paddingTop: Platform.OS === 'ios' ? 8 : 4,

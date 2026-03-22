@@ -19,6 +19,7 @@ import { b2cApi } from '../../api/b2c'
 import { useAuthStore } from '../../stores/authStore'
 import { colors } from '../../theme/colors'
 import { spacing, radius, shadows } from '../../theme/spacing'
+import { fonts } from '../../theme/fonts'
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'ProfileMain'>
 
@@ -68,8 +69,8 @@ const row = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  label: { fontSize: 11, color: colors.subtle, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
-  value: { fontSize: 14, color: colors.ink, fontWeight: '500', marginTop: 1 },
+  label: { fontSize: 11, color: colors.subtle, fontWeight: '600', fontFamily: fonts.semibold, textTransform: 'uppercase', letterSpacing: 0.3 },
+  value: { fontSize: 14, color: colors.ink, fontWeight: '500', fontFamily: fonts.medium, marginTop: 1 },
 })
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
@@ -209,8 +210,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  initials: { fontSize: 30, fontWeight: '800', color: colors.white },
-  name: { fontSize: 22, fontWeight: '800', color: colors.ink, letterSpacing: -0.3 },
+  initials: { fontSize: 30, fontWeight: '800', fontFamily: fonts.displayBold, color: colors.white },
+  name: { fontSize: 22, fontWeight: '800', fontFamily: fonts.displayBold, color: colors.ink, letterSpacing: -0.3 },
   rolePill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  menuText: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.ink },
+  menuText: { flex: 1, fontSize: 14, fontWeight: '600', fontFamily: fonts.semibold, color: colors.ink },
 
   logoutBtn: {
     flexDirection: 'row',
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.dangerBorder,
   },
-  logoutText: { fontSize: 15, fontWeight: '700', color: colors.danger },
+  logoutText: { fontSize: 15, fontWeight: '700', fontFamily: fonts.bold, color: colors.danger },
 
   version: {
     textAlign: 'center',

@@ -26,6 +26,7 @@ import { authApi } from '../../api/auth'
 import { useAuthStore } from '../../stores/authStore'
 import { colors } from '../../theme/colors'
 import { radius, spacing, shadows } from '../../theme/spacing'
+import { fonts } from '../../theme/fonts'
 import type { EducationLevel } from '../../types'
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>
@@ -353,11 +354,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '800',
+    fontFamily: fonts.displayBold,
     color: colors.ink,
     letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 13,
+    fontFamily: fonts.regular,
     color: colors.muted,
     marginTop: 3,
   },
@@ -375,12 +378,13 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.ink,
     marginBottom: 6,
     letterSpacing: 0.1,
   },
-  hint: { color: colors.subtle, fontWeight: '400' },
-  optional: { color: colors.subtle, fontWeight: '400' },
+  hint: { color: colors.subtle, fontWeight: '400', fontFamily: fonts.regular },
+  optional: { color: colors.subtle, fontWeight: '400', fontFamily: fonts.regular },
 
   inputWrap: {
     flexDirection: 'row',
@@ -399,6 +403,7 @@ const styles = StyleSheet.create({
   fieldIcon: { marginRight: spacing[2] },
   input: {
     fontSize: 15,
+    fontFamily: fonts.regular,
     color: colors.ink,
     paddingVertical: 0,
   },
@@ -424,9 +429,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentLight,
   },
   eduIcon: { fontSize: 18, marginBottom: 2 },
-  eduLabel: { fontSize: 12, fontWeight: '700', color: colors.ink },
+  eduLabel: { fontSize: 12, fontWeight: '700', fontFamily: fonts.bold, color: colors.ink },
   eduLabelActive: { color: colors.accentStrong },
-  eduSub: { fontSize: 10, color: colors.muted },
+  eduSub: { fontSize: 10, fontFamily: fonts.regular, color: colors.muted },
   eduSubActive: { color: colors.accent },
 
   button: {
@@ -442,6 +447,7 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 15,
     fontWeight: '700',
+    fontFamily: fonts.bold,
     letterSpacing: 0.2,
   },
 
@@ -450,6 +456,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing[1],
   },
-  loginLinkText: { fontSize: 14, color: colors.muted },
-  loginLinkAccent: { color: colors.accent, fontWeight: '700' },
+  loginLinkText: { fontSize: 14, fontFamily: fonts.regular, color: colors.muted },
+  loginLinkAccent: { color: colors.accent, fontWeight: '700', fontFamily: fonts.bold },
 })

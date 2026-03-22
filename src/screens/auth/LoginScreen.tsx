@@ -22,6 +22,7 @@ import { authApi } from '../../api/auth'
 import { useAuthStore } from '../../stores/authStore'
 import { colors } from '../../theme/colors'
 import { radius, spacing, shadows } from '../../theme/spacing'
+import { fonts } from '../../theme/fonts'
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>
 
@@ -234,11 +235,13 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 28,
     fontWeight: '800',
+    fontFamily: fonts.displayBold,
     color: colors.ink,
     letterSpacing: -0.5,
   },
   brandTagline: {
     fontSize: 13,
+    fontFamily: fonts.regular,
     color: colors.muted,
     marginTop: 4,
     letterSpacing: 0.1,
@@ -254,12 +257,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
+    fontFamily: fonts.displaySemibold,
     color: colors.ink,
     marginBottom: 4,
     letterSpacing: -0.2,
   },
   subtitle: {
     fontSize: 14,
+    fontFamily: fonts.regular,
     color: colors.muted,
     marginBottom: spacing[6],
   },
@@ -268,6 +273,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.ink,
     marginBottom: spacing[1] + 2,
     letterSpacing: 0.1,
@@ -290,6 +296,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
+    fontFamily: fonts.regular,
     color: colors.ink,
     paddingVertical: 0,
   },
@@ -310,6 +317,7 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 15,
     fontWeight: '700',
+    fontFamily: fonts.bold,
     letterSpacing: 0.2,
   },
 
@@ -335,10 +343,12 @@ const styles = StyleSheet.create({
   },
   registerLinkText: {
     fontSize: 14,
+    fontFamily: fonts.regular,
     color: colors.muted,
   },
   registerLinkAccent: {
     color: colors.accent,
     fontWeight: '700',
+    fontFamily: fonts.bold,
   },
 })

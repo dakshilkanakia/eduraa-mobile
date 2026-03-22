@@ -18,6 +18,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { analyticsApi } from '../../api/analytics'
 import { colors } from '../../theme/colors'
 import { spacing, radius, shadows } from '../../theme/spacing'
+import { fonts } from '../../theme/fonts'
 
 // ─── Animated progress bar ────────────────────────────────────────────────────
 
@@ -355,11 +356,13 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 22,
     fontWeight: '800',
+    fontFamily: fonts.displayBold,
     color: colors.ink,
     letterSpacing: -0.3,
   },
   greetingSub: {
     fontSize: 13,
+    fontFamily: fonts.regular,
     color: colors.muted,
     marginTop: 3,
   },
@@ -376,6 +379,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.subtle,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -420,10 +424,12 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: 13,
     fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.ink,
   },
   actionSub: {
     fontSize: 11,
+    fontFamily: fonts.regular,
     color: colors.muted,
   },
 
@@ -465,8 +471,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statValue: { fontSize: 20, fontWeight: '800' },
-  statLabel: { fontSize: 10, color: colors.muted, textAlign: 'center' },
+  statValue: { fontSize: 20, fontWeight: '800', fontFamily: fonts.displayBold },
+  statLabel: { fontSize: 10, fontFamily: fonts.regular, color: colors.muted, textAlign: 'center' },
 
   // Subject
   subjectCard: {
@@ -501,8 +507,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   recentLeft: { flex: 1, gap: 3, marginRight: spacing[3] },
-  recentPaper: { fontSize: 13, fontWeight: '700', color: colors.ink },
-  recentMeta: { fontSize: 11, color: colors.subtle },
+  recentPaper: { fontSize: 13, fontWeight: '700', fontFamily: fonts.bold, color: colors.ink },
+  recentMeta: { fontSize: 11, fontFamily: fonts.regular, color: colors.subtle },
   recentScorePill: {
     alignItems: 'center',
     borderWidth: 1,
