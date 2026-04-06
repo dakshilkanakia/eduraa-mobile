@@ -14,14 +14,14 @@ import { Ionicons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useQuery } from '@tanstack/react-query'
-import type { ProfileStackParamList } from '../../navigation'
+import type { StudentProfileStackParamList } from '../../navigation/StudentTabs'
 import { b2cApi } from '../../api/b2c'
 import { useAuthStore } from '../../stores/authStore'
 import { colors } from '../../theme/colors'
 import { spacing, radius, shadows } from '../../theme/spacing'
 import { fonts } from '../../theme/fonts'
 
-type Nav = NativeStackNavigationProp<ProfileStackParamList, 'ProfileMain'>
+type Nav = NativeStackNavigationProp<StudentProfileStackParamList, 'ProfileMain'>
 
 // ─── Info Row ─────────────────────────────────────────────────────────────────
 
@@ -158,6 +158,19 @@ export default function ProfileScreen() {
 
         {/* Menu items */}
         <View style={[styles.menuCard, shadows.xs]}>
+          {user?.role === 'student' ? (
+            <TouchableOpacity
+              style={[styles.menuRow, styles.menuRowBorder]}
+              onPress={() => (navigation as any).navigate('MyTeachers')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.menuIconWrap, { backgroundColor: colors.accentLight }]}>
+                <Ionicons name="people-outline" size={16} color={colors.accent} />
+              </View>
+              <Text style={styles.menuText}>My Teachers</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.subtle} />
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity style={[styles.menuRow, styles.menuRowBorder]} activeOpacity={0.7}>
             <View style={[styles.menuIconWrap, { backgroundColor: colors.infoBg }]}>
               <Ionicons name="help-circle-outline" size={16} color={colors.info} />

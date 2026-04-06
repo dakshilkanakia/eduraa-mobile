@@ -73,6 +73,15 @@ const QUICK_ACTIONS = [
     bg: colors.accentLight,
   },
   {
+    label: 'My Exams',
+    sub: 'Teacher exams',
+    icon: 'calendar-outline' as const,
+    screen: 'Exams',
+    params: undefined,
+    color: '#CA8A04',
+    bg: '#FEFCE8',
+  },
+  {
     label: 'My Papers',
     sub: 'View all',
     icon: 'document-text-outline' as const,
@@ -80,6 +89,15 @@ const QUICK_ACTIONS = [
     params: { screen: 'PapersList' },
     color: '#0284C7',
     bg: '#F0F9FF',
+  },
+  {
+    label: 'Scan Paper',
+    sub: 'Upload answer sheet',
+    icon: 'camera-outline' as const,
+    screen: 'Scan',
+    params: undefined,
+    color: '#7C3AED',
+    bg: '#F5F3FF',
   },
   {
     label: 'Results',
@@ -96,8 +114,8 @@ const QUICK_ACTIONS = [
     icon: 'sparkles-outline' as const,
     screen: 'AIStudio',
     params: undefined,
-    color: '#7C3AED',
-    bg: '#F5F3FF',
+    color: '#0284C7',
+    bg: '#F0F9FF',
   },
 ]
 

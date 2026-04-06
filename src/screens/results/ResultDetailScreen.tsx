@@ -15,14 +15,14 @@ import { useRoute, useNavigation } from '@react-navigation/native'
 import type { RouteProp } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useQuery } from '@tanstack/react-query'
-import type { ResultsStackParamList } from '../../navigation'
+import type { StudentResultsStackParamList } from '../../navigation/StudentTabs'
 import { checkedPapersApi } from '../../api/checkedPapers'
 import { colors } from '../../theme/colors'
 import { spacing, radius, shadows } from '../../theme/spacing'
 import type { GradingResultItem } from '../../types'
 
-type Route = RouteProp<ResultsStackParamList, 'ResultDetail'>
-type Nav = NativeStackNavigationProp<ResultsStackParamList, 'ResultDetail'>
+type Route = RouteProp<StudentResultsStackParamList, 'ResultDetail'>
+type Nav = NativeStackNavigationProp<StudentResultsStackParamList, 'ResultDetail'>
 
 const QUESTION_TYPE_LABELS: Record<string, string> = {
   mcq: 'MCQ',

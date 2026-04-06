@@ -94,6 +94,8 @@ export default function RegisterScreen() {
         confirm_password: confirmPassword,
         education_level: educationLevel,
         school_standard: standard.trim() || undefined,
+        competitive_exam: 'JEE',
+        exam_stream: 'JEE',
       })
       navigation.navigate('VerifyEmail', {
         email: challenge.email,

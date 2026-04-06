@@ -82,6 +82,8 @@ export interface B2CRegisterRequest {
   school_board?: string
   school_standard?: string
   subjects?: string[]
+  competitive_exam?: string
+  exam_stream?: string
 }
 
 // ─── Papers ───────────────────────────────────────────────────────────────────
@@ -541,4 +543,153 @@ export interface PaginatedResponse<T> {
 export interface ApiError {
   detail: string | { msg: string; type: string }[]
   status_code?: number
+}
+
+// ─── Exam (extended) ──────────────────────────────────────────────────────────
+
+export interface ExamCreate {
+  name: string
+  subject_id?: string
+  standard?: string
+  division?: string
+  semester?: string
+  category?: string
+  exam_date?: string
+  duration_minutes?: number
+  auto_grade_enabled?: boolean
+  results_published?: boolean
+  paper_ids?: string[]
+}
+
+// StudentExamPaper extended with submission status
+export interface StudentExamPaperWithStatus extends StudentExamPaper {
+  is_submitted_by_me?: boolean
+  subject_name?: string
+}
+
+// ─── Scan / Checked Papers (upload options) ───────────────────────────────────
+
+export interface CheckedPaperUploadOptions {
+  exams: {
+    id: string
+    name: string
+    standard?: string
+    division?: string
+    subject_id?: string
+  }[]
+  subjects: { id: string; name: string }[]
+  students: {
+    id: string
+    first_name: string
+    last_name: string
+    student_id: string
+    standard?: string
+    division?: string
+  }[]
+  papers?: {
+    id: string
+    title: string
+    source_type: string
+    standard?: string
+    division?: string
+    subject_id?: string
+    created_at: string
+  }[]
+}
+
+export interface TeacherReviewUpdate {
+  updates: { question_id: string; score: number; feedback?: string }[]
+  publish_results?: boolean
+}
+
+// ─── Roster ───────────────────────────────────────────────────────────────────
+
+export interface TeacherRosterEntry {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  subjects_taught: string[]
+  is_class_teacher?: boolean
+  status?: string
+}
+
+export interface SubjectAssignment {
+  subject: string
+  teacher_id: string
+  teacher_name: string
+  is_class_teacher?: boolean
+}
+
+export interface StudentTeachersResponse {
+  class_teacher_id?: string
+  class_teacher_name?: string
+  teachers: TeacherRosterEntry[]
+  subjects: SubjectAssignment[]
+}
+
+export interface StudentRosterEntry {
+  student_id: string
+  student_code: string
+  student_name: string
+  email: string
+  board: string
+  standard: string
+  division?: string
+  matched_subjects: string[]
+  source?: string
+}
+
+export interface TeacherMasterProfile {
+  profile: {
+    id: string
+    teacher_id: string
+    first_name: string
+    last_name: string
+    email: string
+    school_name?: string
+    branch_name?: string
+    board?: string
+    standards_taught: string[]
+    divisions_taught: string[]
+    subjects_taught: string[]
+    class_teacher_opt_in: boolean
+    class_teacher_standard?: string
+    class_teacher_division?: string
+  }
+  subjects: { subject_id: string; subject_name: string; source: string }[]
+  subject_mappings: {
+    subject_name: string
+    standard: string
+    division: string
+    assignment_type: string
+    source: string
+  }[]
+  students: StudentRosterEntry[]
+  students_total_count: number
+  students_returned_count: number
+  students_truncated: boolean
+  documents?: {
+    title: string
+    subject?: string
+    standard?: string
+    page_count?: number
+    chunk_count?: number
+    processing_status?: string
+  }[]
+}
+
+export interface ClassTeacherOptions {
+  standards: string[]
+  divisions: string[]
+}
+
+export interface CreateStudentRequest {
+  first_name: string
+  last_name: string
+  email: string
+  student_id: string
+  password: string
+  subjects?: string[]
+  division?: string
 }

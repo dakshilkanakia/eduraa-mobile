@@ -14,14 +14,14 @@ import { Ionicons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useQuery } from '@tanstack/react-query'
-import type { PapersStackParamList } from '../../navigation'
+import type { StudentPapersStackParamList } from '../../navigation/StudentTabs'
 import { papersApi } from '../../api/papers'
 import { colors } from '../../theme/colors'
 import { spacing, radius, shadows } from '../../theme/spacing'
 import { fonts } from '../../theme/fonts'
 import type { PaperListItem } from '../../types'
 
-type Nav = NativeStackNavigationProp<PapersStackParamList, 'PapersList'>
+type Nav = NativeStackNavigationProp<StudentPapersStackParamList, 'PapersList'>
 
 function PaperCard({ item, onPress }: { item: PaperListItem; onPress: () => void }) {
   return (

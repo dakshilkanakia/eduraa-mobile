@@ -16,13 +16,13 @@ import { Ionicons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import type { PapersStackParamList } from '../../navigation'
+import type { StudentPapersStackParamList } from '../../navigation/StudentTabs'
 import { papersApi } from '../../api/papers'
 import { colors } from '../../theme/colors'
 import { spacing, radius, shadows } from '../../theme/spacing'
 import type { Difficulty, Chapter } from '../../types'
 
-type Nav = NativeStackNavigationProp<PapersStackParamList, 'GeneratePaper'>
+type Nav = NativeStackNavigationProp<StudentPapersStackParamList, 'GeneratePaper'>
 
 const DIFFICULTIES: { value: Difficulty; label: string; color: string; bg: string }[] = [
   { value: 'easy', label: 'Easy', color: colors.success, bg: colors.successBg },

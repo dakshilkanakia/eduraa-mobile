@@ -15,13 +15,13 @@ import { useRoute, useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { RouteProp } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
-import type { PapersStackParamList } from '../../navigation'
+import type { StudentPapersStackParamList } from '../../navigation/StudentTabs'
 import { papersApi } from '../../api/papers'
 import { colors } from '../../theme/colors'
 import { spacing, radius, shadows } from '../../theme/spacing'
 
-type Nav = NativeStackNavigationProp<PapersStackParamList, 'PaperDetail'>
-type Route = RouteProp<PapersStackParamList, 'PaperDetail'>
+type Nav = NativeStackNavigationProp<StudentPapersStackParamList, 'PaperDetail'>
+type Route = RouteProp<StudentPapersStackParamList, 'PaperDetail'>
 
 const Q_TYPE_LABELS: Record<string, string> = {
   mcq: 'MCQ',
@@ -105,6 +105,13 @@ export default function PaperDetailScreen() {
             </View>
           </View>
 
+          {params.examId ? (
+            <View style={styles.examBadge}>
+              <Ionicons name="calendar-outline" size={12} color={colors.info} />
+              <Text style={styles.examBadgeText}>Exam paper</Text>
+            </View>
+          ) : null}
+
           {paper.instructions ? (
             <View style={styles.instructions}>
               <Text style={styles.instructionsLabel}>Instructions</Text>
@@ -147,7 +154,7 @@ export default function PaperDetailScreen() {
           ) : (
             <TouchableOpacity
               style={styles.primaryBtn}
-              onPress={() => navigation.navigate('AttemptPaper', { paperId: paper.id })}
+              onPress={() => navigation.navigate('AttemptPaper', { paperId: paper.id, examId: params.examId })}
               activeOpacity={0.82}
             >
               <Ionicons name="pencil" size={16} color={colors.white} />
@@ -257,6 +264,19 @@ const styles = StyleSheet.create({
   },
   instructionsLabel: { fontSize: 11, fontWeight: '700', color: colors.info, textTransform: 'uppercase', letterSpacing: 0.5 },
   instructionsText: { fontSize: 13, color: colors.infoText, lineHeight: 19 },
+  examBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+    backgroundColor: colors.infoBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.infoBorder,
+  },
+  examBadgeText: { fontSize: 11, fontWeight: '600', color: colors.info },
 
   submittedBanner: {
     flexDirection: 'row',

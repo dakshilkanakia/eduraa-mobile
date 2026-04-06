@@ -6,15 +6,16 @@ import {
 import { useRoute, useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { RouteProp } from '@react-navigation/native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import type { PapersStackParamList } from '../../navigation'
+import type { StudentPapersStackParamList } from '../../navigation/StudentTabs'
 import { papersApi } from '../../api/papers'
 import { colors } from '../../theme/colors'
 import { spacing, radius } from '../../theme/spacing'
 import type { AnswerEntry } from '../../types'
 
-type Nav = NativeStackNavigationProp<PapersStackParamList, 'AttemptPaper'>
-type Route = RouteProp<PapersStackParamList, 'AttemptPaper'>
+type Nav = NativeStackNavigationProp<StudentPapersStackParamList, 'AttemptPaper'>
+type Route = RouteProp<StudentPapersStackParamList, 'AttemptPaper'>
 
 export default function AttemptPaperScreen() {
   const navigation = useNavigation<Nav>()
@@ -24,6 +25,7 @@ export default function AttemptPaperScreen() {
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
   const [startTime] = useState(Date.now())
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const timerKey = `paper-timer-${params.paperId}`
 
   const { data: paper, isLoading } = useQuery({
     queryKey: ['paper', params.paperId],
@@ -39,6 +41,7 @@ export default function AttemptPaperScreen() {
         mode: 'standard',
       }),
     onSuccess: (data) => {
+      AsyncStorage.removeItem(timerKey)
       // Detect if backend silently returned an existing submission
       // (backend returns existing submission if already submitted for this paper)
       const submissionAge = Date.now() - new Date(data.created_at).getTime()
@@ -134,16 +137,28 @@ export default function AttemptPaperScreen() {
     },
   })
 
-  // Timer setup
+  // Timer setup — restore from AsyncStorage if available
   useEffect(() => {
-    if (paper?.duration_minutes) {
-      setTimeLeft(paper.duration_minutes * 60)
-    }
+    if (!paper?.duration_minutes) return
+    const totalSeconds = paper.duration_minutes * 60
+
+    AsyncStorage.getItem(timerKey).then((stored) => {
+      if (stored) {
+        const { startTime: savedStart } = JSON.parse(stored)
+        const elapsed = Math.floor((Date.now() - savedStart) / 1000)
+        const remaining = totalSeconds - elapsed
+        setTimeLeft(remaining > 0 ? remaining : 0)
+      } else {
+        AsyncStorage.setItem(timerKey, JSON.stringify({ startTime: Date.now(), durationSeconds: totalSeconds }))
+        setTimeLeft(totalSeconds)
+      }
+    })
   }, [paper])
 
   useEffect(() => {
     if (timeLeft === null) return
     if (timeLeft <= 0) {
+      Alert.alert("Time's up!", 'Your paper will be submitted automatically.')
       handleSubmit(true)
       return
     }

@@ -15,14 +15,14 @@ import { Ionicons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useQuery } from '@tanstack/react-query'
-import type { ResultsStackParamList } from '../../navigation'
+import type { StudentResultsStackParamList } from '../../navigation/StudentTabs'
 import { checkedPapersApi } from '../../api/checkedPapers'
 import { colors } from '../../theme/colors'
 import { spacing, radius, shadows } from '../../theme/spacing'
 import { fonts } from '../../theme/fonts'
 import type { CheckedPaper } from '../../types'
 
-type Nav = NativeStackNavigationProp<ResultsStackParamList, 'ResultsList'>
+type Nav = NativeStackNavigationProp<StudentResultsStackParamList, 'ResultsList'>
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; icon: string }> = {
   graded:                { label: 'Graded',        color: colors.success, bg: colors.successBg,  icon: 'checkmark-circle' },
